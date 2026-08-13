@@ -15,7 +15,6 @@
 
 body {
     min-height: 100vh;
-
     font-family:
         Arial,
         Helvetica,
@@ -23,7 +22,6 @@ body {
 
     background: var(--bg);
     color: var(--text);
-
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,9 +33,7 @@ body {
 .app {
     width: min(100%, 900px);
     min-height: 100vh;
-
     padding: 30px;
-
     display: flex;
     flex-direction: column;
 }
@@ -47,7 +43,6 @@ body {
 
 .header {
     width: 100%;
-
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -63,7 +58,6 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-
     font-size: 12px;
     color: var(--muted);
 }
@@ -71,9 +65,7 @@ body {
 #status-dot {
     width: 7px;
     height: 7px;
-
     border-radius: 50%;
-
     background: #aaa;
 }
 
@@ -86,13 +78,10 @@ body {
 
 .connection {
     flex: 1;
-
     display: flex;
     flex-direction: column;
-
     justify-content: center;
     align-items: center;
-
     text-align: center;
 }
 
@@ -101,38 +90,28 @@ body {
 
 .heading {
     max-width: 600px;
-
     margin-bottom: 35px;
 }
 
 .eyebrow {
     display: block;
-
     margin-bottom: 12px;
-
     font-size: 11px;
     letter-spacing: 0.15em;
-
     color: var(--muted);
 }
 
 h1 {
     font-size: clamp(42px, 7vw, 76px);
-
     line-height: 0.95;
-
     letter-spacing: -0.07em;
-
     font-weight: 500;
 }
 
 .heading p {
     margin-top: 20px;
-
     color: var(--muted);
-
     font-size: 14px;
-
     line-height: 1.6;
 }
 
@@ -141,33 +120,21 @@ h1 {
 
 .toggle-wrapper {
     display: flex;
-
     padding: 4px;
-
     margin-bottom: 30px;
-
     border: 1px solid var(--border);
-
     border-radius: 100px;
-
     background: #e9e8e3;
 }
 
 .toggle-option {
     border: none;
-
     padding: 10px 24px;
-
     border-radius: 100px;
-
     background: transparent;
-
     color: var(--muted);
-
     font-size: 12px;
-
     cursor: pointer;
-
     transition:
         background 0.25s ease,
         color 0.25s ease;
@@ -175,7 +142,6 @@ h1 {
 
 .toggle-option.active {
     background: var(--accent);
-
     color: white;
 }
 
@@ -184,10 +150,8 @@ h1 {
 
 .panel {
     width: 100%;
-
     display: flex;
     flex-direction: column;
-
     align-items: center;
 }
 
@@ -197,21 +161,16 @@ h1 {
 .qr-container {
     width: 270px;
     height: 270px;
-
     padding: 20px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     background: white;
-
     border: 1px solid var(--border);
 }
 
 #qrcode {
     display: flex;
-
     align-items: center;
     justify-content: center;
 }
@@ -225,23 +184,18 @@ h1 {
 .peer-info {
     display: flex;
     flex-direction: column;
-
     margin-top: 22px;
-
     gap: 6px;
 }
 
 .label {
     font-size: 10px;
-
     letter-spacing: 0.15em;
-
     color: var(--muted);
 }
 
 #peer-id {
     font-family: monospace;
-
     font-size: 14px;
 }
 
@@ -250,9 +204,7 @@ h1 {
 
 .hint {
     margin-top: 15px;
-
     font-size: 12px;
-
     color: var(--muted);
 }
 
@@ -261,17 +213,13 @@ h1 {
 
 #reader {
     width: min(100%, 420px);
-
     overflow: hidden;
-
     border: 1px solid var(--border);
-
     background: black;
 }
 
 #reader video {
     width: 100% !important;
-
     display: block;
 }
 
@@ -281,23 +229,16 @@ h1 {
 
 #reader__dashboard_section_csr button {
     border: none;
-
     padding: 8px 14px;
-
     border-radius: 5px;
-
     background: #111;
-
     color: white;
-
     cursor: pointer;
 }
 
 .scanner-message {
     margin-top: 15px;
-
     font-size: 12px;
-
     color: var(--muted);
 }
 
@@ -306,40 +247,29 @@ h1 {
 
 .connection-result {
     width: min(100%, 420px);
-
     margin-top: 25px;
-
     padding: 18px;
-
     display: flex;
     flex-direction: column;
-
     gap: 6px;
-
     border: 1px solid #b8d8c4;
-
     background: #f5fbf7;
 }
 
 .result-label {
     font-size: 10px;
-
     letter-spacing: 0.15em;
-
     color: #20a35a;
 }
 
 #connected-peer {
     font-family: monospace;
-
     font-size: 14px;
-
     word-break: break-all;
 }
 
 .result-status {
     font-size: 11px;
-
     color: var(--muted);
 }
 
