@@ -1,11 +1,7 @@
 /* =========================================================
-   P2P WEBRTC FILE TRANSFER
-   QR CODE + MULTIPLE FILES
+   P2P WEBRTC CONNECTION
+   QR CODE + PEERJS
    ========================================================= */
-
-/* ---------------------------------------------------------
-   GLOBAL STATE
---------------------------------------------------------- */
 
 let peer = null;
 let connection = null;
@@ -13,35 +9,12 @@ let connection = null;
 let qrScanner = null;
 let scannerRunning = false;
 
-let selectedFiles = [];
-
-let receivingFile = null;
-let receivedChunks = [];
-let receivedBytes = 0;
-
-let transferUI = null;
-
 let isConnecting = false;
-
-
-/*
- * Keep chunks reasonably small.
- * This avoids putting very large messages
- * into the WebRTC DataChannel.
- */
-const CHUNK_SIZE = 16 * 1024;
-
-
-/*
- * Pause sending when the browser's
- * DataChannel buffer becomes large.
- */
-const MAX_BUFFERED_AMOUNT = 512 * 1024;
 
 
 /* =========================================================
    INITIALIZATION
-========================================================= */
+   ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -50,8 +23,6 @@ document.addEventListener(
 
 
 async function initialize() {
-
-    injectTransferStyles();
 
     setupButtons();
 
@@ -88,7 +59,7 @@ async function initialize() {
 
 /* =========================================================
    BUTTONS
-========================================================= */
+   ========================================================= */
 
 function setupButtons() {
 
@@ -126,7 +97,7 @@ function setupButtons() {
 
 /* =========================================================
    LOAD PEERJS
-========================================================= */
+   ========================================================= */
 
 function loadPeerJS() {
 
@@ -165,6 +136,7 @@ function loadPeerJS() {
                     );
 
                 }
+
             };
 
 
@@ -182,6 +154,7 @@ function loadPeerJS() {
             document.head.appendChild(
                 script
             );
+
         }
     );
 }
@@ -189,40 +162,40 @@ function loadPeerJS() {
 
 /* =========================================================
    CREATE PEER
-========================================================= */
+   ========================================================= */
 
 function createPeer() {
 
     if (peer) {
+
         return;
+
     }
 
 
-    /*
-     * PeerJS handles signaling.
-     *
-     * WebRTC carries the actual file data.
-     *
-     * Reliable + binary are important for file transfer.
-     */
-
     peer = new Peer({
+
         config: {
+
             iceServers: [
+
                 {
                     urls:
                         "stun:stun.l.google.com:19302"
                 }
+
             ]
+
         },
 
         debug: 1
+
     });
 
 
     /* -----------------------------------------------------
        PEER READY
-    ----------------------------------------------------- */
+       ----------------------------------------------------- */
 
     peer.on(
         "open",
@@ -259,15 +232,16 @@ function createPeer() {
 
             setText(
                 "description",
-                "Show this QR code to the device that will send files."
+                "Show this QR code to the device that will connect."
             );
+
         }
     );
 
 
     /* -----------------------------------------------------
        INCOMING CONNECTION
-    ----------------------------------------------------- */
+       ----------------------------------------------------- */
 
     peer.on(
         "connection",
@@ -280,20 +254,23 @@ function createPeer() {
 
 
             /*
-             * The device showing the QR
-             * is the receiver.
+             * This device owns the QR code.
+             *
+             * Therefore this device is
+             * the receiver.
              */
 
             acceptIncomingConnection(
                 incoming
             );
+
         }
     );
 
 
     /* -----------------------------------------------------
        PEER ERRORS
-    ----------------------------------------------------- */
+       ----------------------------------------------------- */
 
     peer.on(
         "error",
@@ -344,7 +321,9 @@ function createPeer() {
                         error.message ||
                         "Peer error"
                     );
+
             }
+
         }
     );
 
@@ -378,7 +357,7 @@ function createPeer() {
 
 /* =========================================================
    QR GENERATION
-========================================================= */
+   ========================================================= */
 
 function generateQR(
     peerId
@@ -391,7 +370,9 @@ function generateQR(
 
 
     if (!container) {
+
         return;
+
     }
 
 
@@ -412,22 +393,32 @@ function generateQR(
 
 
         return;
+
     }
 
 
     new QRCode(
         container,
         {
-            text: peerId,
 
-            width: 220,
-            height: 220,
+            text:
+                peerId,
 
-            colorDark: "#111111",
-            colorLight: "#ffffff",
+            width:
+                220,
+
+            height:
+                220,
+
+            colorDark:
+                "#111111",
+
+            colorLight:
+                "#ffffff",
 
             correctLevel:
                 QRCode.CorrectLevel.H
+
         }
     );
 }
@@ -435,7 +426,7 @@ function generateQR(
 
 /* =========================================================
    SHOW QR
-========================================================= */
+   ========================================================= */
 
 function showQR() {
 
@@ -464,6 +455,7 @@ function showQR() {
         "active"
     );
 
+
     scanButton?.classList.remove(
         "active"
     );
@@ -472,6 +464,7 @@ function showQR() {
     qrSection?.classList.remove(
         "hidden"
     );
+
 
     scannerSection?.classList.add(
         "hidden"
@@ -508,7 +501,7 @@ function showQR() {
 
 /* =========================================================
    SHOW SCANNER
-========================================================= */
+   ========================================================= */
 
 async function showScanner() {
 
@@ -537,6 +530,7 @@ async function showScanner() {
         "active"
     );
 
+
     scanButton?.classList.add(
         "active"
     );
@@ -545,6 +539,7 @@ async function showScanner() {
     qrSection?.classList.add(
         "hidden"
     );
+
 
     scannerSection?.classList.remove(
         "hidden"
@@ -564,13 +559,13 @@ async function showScanner() {
 
 
     if (scannerRunning) {
+
         return;
+
     }
 
 
-    if (
-        !window.Html5Qrcode
-    ) {
+    if (!window.Html5Qrcode) {
 
         setStatus(
             "error",
@@ -585,6 +580,7 @@ async function showScanner() {
 
 
         return;
+
     }
 
 
@@ -596,10 +592,8 @@ async function showScanner() {
         location.protocol === "https:";
 
     const isLocalhost =
-        location.hostname ===
-            "localhost" ||
-        location.hostname ===
-            "127.0.0.1";
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1";
 
 
     if (
@@ -620,6 +614,7 @@ async function showScanner() {
 
 
         return;
+
     }
 
 
@@ -648,12 +643,18 @@ async function showScanner() {
             },
 
             {
-                fps: 10,
+                fps:
+                    10,
 
-                qrbox: {
-                    width: 220,
-                    height: 220
+                qrbox:
+                {
+                    width:
+                        220,
+
+                    height:
+                        220
                 }
+
             },
 
             decodedText => {
@@ -667,12 +668,11 @@ async function showScanner() {
             () => {
 
                 /*
-                 * Normal scanner callback.
-                 *
                  * Ignore unsuccessful scans.
                  */
 
             }
+
         );
 
 
@@ -680,6 +680,7 @@ async function showScanner() {
             "info",
             "Scanning..."
         );
+
 
     } catch (error) {
 
@@ -704,13 +705,14 @@ async function showScanner() {
             "scanner-message",
             "Could not start the camera."
         );
+
     }
 }
 
 
 /* =========================================================
    QR DETECTED
-========================================================= */
+   ========================================================= */
 
 async function onQRCodeDetected(
     text
@@ -723,7 +725,9 @@ async function onQRCodeDetected(
 
 
     if (!remotePeerId) {
+
         return;
+
     }
 
 
@@ -736,12 +740,12 @@ async function onQRCodeDetected(
     ) {
 
         return;
+
     }
 
 
     /*
-     * Prevent html5-qrcode from
-     * firing this multiple times.
+     * Prevent multiple scanner callbacks.
      */
 
     isConnecting = true;
@@ -770,7 +774,7 @@ async function onQRCodeDetected(
 
 /* =========================================================
    CONNECT TO PEER
-========================================================= */
+   ========================================================= */
 
 function connectToPeer(
     remotePeerId
@@ -791,6 +795,7 @@ function connectToPeer(
 
 
         return;
+
     }
 
 
@@ -809,6 +814,7 @@ function connectToPeer(
 
 
         return;
+
     }
 
 
@@ -819,24 +825,26 @@ function connectToPeer(
 
 
     /*
-     * IMPORTANT:
+     * This device scanned the QR.
      *
-     * serialization: "binary"
-     * reliable: true
-     *
-     * This connection can carry both
-     * metadata objects and ArrayBuffer chunks.
+     * Therefore this device is
+     * the sender.
      */
 
     const newConnection =
         peer.connect(
             remotePeerId,
             {
-                reliable: true,
 
-                serialization: "binary",
+                reliable:
+                    true,
 
-                label: "file-transfer"
+                serialization:
+                    "binary",
+
+                label:
+                    "p2p-connection"
+
             }
         );
 
@@ -876,16 +884,9 @@ function connectToPeer(
 
             setText(
                 "description",
-                "Select one or more files to send."
+                "Connection established."
             );
 
-
-            /*
-             * This device scanned the QR,
-             * therefore this device is the sender.
-             */
-
-            createSenderUI();
         }
     );
 
@@ -894,16 +895,11 @@ function connectToPeer(
         "data",
         data => {
 
-            /*
-             * Usually the sender does not
-             * receive data, but keeping this
-             * listener is harmless.
-             */
-
             console.log(
                 "Data received:",
                 data
             );
+
         }
     );
 
@@ -944,6 +940,7 @@ function connectToPeer(
                 error.message ||
                 "Connection failed"
             );
+
         }
     );
 }
@@ -951,7 +948,7 @@ function connectToPeer(
 
 /* =========================================================
    ACCEPT INCOMING CONNECTION
-========================================================= */
+   ========================================================= */
 
 function acceptIncomingConnection(
     incomingConnection
@@ -965,6 +962,7 @@ function acceptIncomingConnection(
         incomingConnection.close();
 
         return;
+
     }
 
 
@@ -974,19 +972,6 @@ function acceptIncomingConnection(
 
     console.log(
         "Incoming connection object created."
-    );
-
-
-    /*
-     * Attach DATA listener immediately.
-     *
-     * We don't want to miss data after
-     * the channel opens.
-     */
-
-    connection.on(
-        "data",
-        handleIncomingData
     );
 
 
@@ -1018,16 +1003,42 @@ function acceptIncomingConnection(
 
             setText(
                 "description",
-                "Waiting for files..."
+                "Connection established. Opening preview..."
             );
 
 
             /*
-             * This device displayed the QR,
-             * therefore this device is the receiver.
+             * IMPORTANT:
+             *
+             * This device is the receiver.
+             *
+             * Open preview.html automatically.
              */
 
-            createReceiverUI();
+            openPreviewPage(
+                connection.peer
+            );
+
+        }
+    );
+
+
+    connection.on(
+        "data",
+        data => {
+
+            /*
+             * Keep the connection alive.
+             *
+             * preview.html can create its own
+             * connection if required.
+             */
+
+            console.log(
+                "Data received:",
+                data
+            );
+
         }
     );
 
@@ -1060,14 +1071,71 @@ function acceptIncomingConnection(
                 error.message ||
                 "Connection error"
             );
+
         }
     );
 }
 
 
 /* =========================================================
+   OPEN PREVIEW PAGE
+   ========================================================= */
+
+function openPreviewPage(
+    remotePeerId
+) {
+
+    const peerId =
+        encodeURIComponent(
+            String(
+                remotePeerId ||
+                ""
+            )
+        );
+
+
+    console.log(
+        "Opening preview.html"
+    );
+
+
+    console.log(
+        "Remote peer:",
+        remotePeerId
+    );
+
+
+    /*
+     * Pass the sender's PeerJS ID
+     * to preview.html.
+     */
+
+    const previewURL =
+        peerId
+            ? `preview.html?peer=${peerId}`
+            : "preview.html";
+
+
+    /*
+     * Small delay to allow the
+     * connected state to update.
+     */
+
+    setTimeout(
+        () => {
+
+            window.location.href =
+                previewURL;
+
+        },
+        300
+    );
+}
+
+
+/* =========================================================
    CONNECTION RESULT
-========================================================= */
+   ========================================================= */
 
 function showConnectionResult(
     remotePeerId
@@ -1077,6 +1145,7 @@ function showConnectionResult(
         document.getElementById(
             "connection-result"
         );
+
 
     const remote =
         document.getElementById(
@@ -1099,1361 +1168,8 @@ function showConnectionResult(
 
 
 /* =========================================================
-   SENDER UI
-========================================================= */
-
-function createSenderUI() {
-
-    removeTransferUI();
-
-
-    transferUI =
-        document.createElement(
-            "div"
-        );
-
-
-    transferUI.className =
-        "dynamic-transfer-ui";
-
-
-    transferUI.innerHTML = `
-
-        <div class="dynamic-title">
-            SEND FILES
-        </div>
-
-
-        <label class="file-picker">
-
-            <input
-                id="file-input"
-                type="file"
-                multiple
-            >
-
-            <span>
-                Select multiple files
-            </span>
-
-        </label>
-
-
-        <div
-            id="selected-files"
-            class="selected-files"
-        ></div>
-
-
-        <div
-            class="transfer-progress-wrap"
-        >
-
-            <div
-                class="transfer-progress-head"
-            >
-
-                <span
-                    id="send-progress-label"
-                >
-                    Ready
-                </span>
-
-                <span
-                    id="send-progress-percent"
-                >
-                    0%
-                </span>
-
-            </div>
-
-
-            <div
-                class="transfer-progress-track"
-            >
-
-                <div
-                    id="send-progress"
-                    class="transfer-progress"
-                ></div>
-
-            </div>
-
-        </div>
-
-
-        <button
-            id="send-files-btn"
-            class="dynamic-button"
-            type="button"
-            disabled
-        >
-            Send Files
-        </button>
-
-
-        <div
-            id="send-message"
-            class="transfer-message"
-        ></div>
-
-    `;
-
-
-    const parent =
-        document.querySelector(
-            ".connection"
-        );
-
-
-    if (!parent) {
-        return;
-    }
-
-
-    parent.appendChild(
-        transferUI
-    );
-
-
-    const fileInput =
-        document.getElementById(
-            "file-input"
-        );
-
-
-    const sendButton =
-        document.getElementById(
-            "send-files-btn"
-        );
-
-
-    fileInput.addEventListener(
-        "change",
-        event => {
-
-            selectedFiles =
-                Array.from(
-                    event.target.files
-                );
-
-
-            renderSelectedFiles();
-
-
-            sendButton.disabled =
-                selectedFiles.length === 0;
-
-        }
-    );
-
-
-    sendButton.addEventListener(
-        "click",
-        sendAllFiles
-    );
-}
-
-
-/* =========================================================
-   SHOW SELECTED FILES
-========================================================= */
-
-function renderSelectedFiles() {
-
-    const container =
-        document.getElementById(
-            "selected-files"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    selectedFiles.forEach(
-        (
-            file,
-            index
-        ) => {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-
-            row.className =
-                "selected-file-row";
-
-
-            row.innerHTML = `
-
-                <span
-                    class="file-number"
-                >
-                    ${index + 1}
-                </span>
-
-                <span
-                    class="file-name"
-                    title="${escapeHTML(file.name)}"
-                >
-                    ${escapeHTML(file.name)}
-                </span>
-
-                <span
-                    class="file-size"
-                >
-                    ${formatBytes(file.size)}
-                </span>
-
-            `;
-
-
-            container.appendChild(
-                row
-            );
-        }
-    );
-}
-
-
-/* =========================================================
-   SEND ALL FILES
-========================================================= */
-
-async function sendAllFiles() {
-
-    if (
-        !connection ||
-        !connection.open
-    ) {
-
-        setStatus(
-            "error",
-            "Connection is not open"
-        );
-
-
-        return;
-    }
-
-
-    if (
-        selectedFiles.length === 0
-    ) {
-        return;
-    }
-
-
-    const button =
-        document.getElementById(
-            "send-files-btn"
-        );
-
-
-    button.disabled = true;
-
-
-    try {
-
-        for (
-            let i = 0;
-            i < selectedFiles.length;
-            i++
-        ) {
-
-            await sendFile(
-                selectedFiles[i],
-                i,
-                selectedFiles.length
-            );
-
-        }
-
-
-        updateSendProgress(
-            100,
-            "Transfer complete"
-        );
-
-
-        setStatus(
-            "connected",
-            "Files sent"
-        );
-
-
-        setText(
-            "send-message",
-            `${selectedFiles.length} file(s) sent successfully.`
-        );
-
-    } catch (error) {
-
-        console.error(
-            "FILE TRANSFER ERROR:",
-            error
-        );
-
-
-        setStatus(
-            "error",
-            "File transfer failed"
-        );
-
-
-        setText(
-            "send-message",
-            error.message ||
-            "File transfer failed."
-        );
-
-    } finally {
-
-        button.disabled =
-            false;
-
-    }
-}
-
-
-/* =========================================================
-   SEND SINGLE FILE
-========================================================= */
-
-async function sendFile(
-    file,
-    fileIndex,
-    totalFiles
-) {
-
-    if (
-        !connection ||
-        !connection.open
-    ) {
-
-        throw new Error(
-            "Connection closed."
-        );
-    }
-
-
-    updateSendProgress(
-        0,
-        `Sending ${fileIndex + 1}/${totalFiles}: ${file.name}`
-    );
-
-
-    /*
-     * FILE START MESSAGE
-     */
-
-    connection.send({
-        type: "file-start",
-
-        name: file.name,
-
-        size: file.size,
-
-        mime:
-            file.type ||
-            "application/octet-stream",
-
-        fileIndex: fileIndex,
-
-        totalFiles: totalFiles
-    });
-
-
-    /*
-     * Empty files need no chunks.
-     */
-
-    if (
-        file.size === 0
-    ) {
-
-        await waitForDataChannel();
-
-
-        connection.send({
-            type: "file-end",
-
-            fileIndex: fileIndex,
-
-            totalFiles: totalFiles
-        });
-
-
-        updateSendProgress(
-            100,
-            `${file.name} complete`
-        );
-
-
-        return;
-    }
-
-
-    let offset = 0;
-
-
-    while (
-        offset <
-        file.size
-    ) {
-
-        /*
-         * Apply backpressure.
-         */
-
-        await waitForBufferSpace();
-
-
-        if (
-            !connection ||
-            !connection.open
-        ) {
-
-            throw new Error(
-                "Connection closed during transfer."
-            );
-        }
-
-
-        const end =
-            Math.min(
-                offset +
-                    CHUNK_SIZE,
-
-                file.size
-            );
-
-
-        const blob =
-            file.slice(
-                offset,
-                end
-            );
-
-
-        const arrayBuffer =
-            await blob.arrayBuffer();
-
-
-        /*
-         * Send binary chunk.
-         */
-
-        connection.send(
-            arrayBuffer
-        );
-
-
-        offset +=
-            arrayBuffer.byteLength;
-
-
-        const percentage =
-            Math.floor(
-                (
-                    offset /
-                    file.size
-                ) * 100
-            );
-
-
-        updateSendProgress(
-            percentage,
-            `Sending ${fileIndex + 1}/${totalFiles}: ${file.name}`
-        );
-    }
-
-
-    /*
-     * Make sure all previous data has
-     * entered the DataChannel queue
-     * before sending file-end.
-     */
-
-    await waitForBufferSpace();
-
-
-    /*
-     * FILE END MESSAGE
-     */
-
-    connection.send({
-        type: "file-end",
-
-        fileIndex: fileIndex,
-
-        totalFiles: totalFiles
-    });
-
-
-    updateSendProgress(
-        100,
-        `${file.name} complete`
-    );
-
-
-    /*
-     * Small pause between files.
-     */
-
-    await sleep(100);
-}
-
-
-/* =========================================================
-   WAIT FOR DATA CHANNEL
-========================================================= */
-
-async function waitForDataChannel() {
-
-    if (
-        !connection ||
-        !connection.open
-    ) {
-
-        throw new Error(
-            "Connection is not open."
-        );
-    }
-
-
-    /*
-     * PeerJS exposes the underlying
-     * RTCDataChannel through dataChannel.
-     */
-
-    if (
-        connection.dataChannel
-    ) {
-
-        return;
-    }
-
-
-    /*
-     * Wait briefly for it to become available.
-     */
-
-    for (
-        let i = 0;
-        i < 100;
-        i++
-    ) {
-
-        if (
-            connection.dataChannel
-        ) {
-
-            return;
-        }
-
-
-        await sleep(10);
-    }
-}
-
-
-/* =========================================================
-   WAIT FOR BUFFER SPACE
-========================================================= */
-
-async function waitForBufferSpace() {
-
-    await waitForDataChannel();
-
-
-    const channel =
-        connection.dataChannel;
-
-
-    if (!channel) {
-        return;
-    }
-
-
-    /*
-     * Wait while the browser's
-     * RTCDataChannel is backed up.
-     */
-
-    while (
-        channel.bufferedAmount >
-        MAX_BUFFERED_AMOUNT
-    ) {
-
-        if (
-            !connection ||
-            !connection.open
-        ) {
-
-            throw new Error(
-                "Connection closed."
-            );
-        }
-
-
-        await sleep(10);
-    }
-}
-
-
-/* =========================================================
-   SEND PROGRESS
-========================================================= */
-
-function updateSendProgress(
-    percentage,
-    label
-) {
-
-    const progress =
-        document.getElementById(
-            "send-progress"
-        );
-
-
-    const percent =
-        document.getElementById(
-            "send-progress-percent"
-        );
-
-
-    const text =
-        document.getElementById(
-            "send-progress-label"
-        );
-
-
-    if (progress) {
-
-        progress.style.width =
-            `${percentage}%`;
-
-    }
-
-
-    if (percent) {
-
-        percent.textContent =
-            `${percentage}%`;
-
-    }
-
-
-    if (text) {
-
-        text.textContent =
-            label;
-
-    }
-}
-
-
-/* =========================================================
-   RECEIVER UI
-========================================================= */
-
-function createReceiverUI() {
-
-    removeTransferUI();
-
-
-    transferUI =
-        document.createElement(
-            "div"
-        );
-
-
-    transferUI.className =
-        "dynamic-transfer-ui";
-
-
-    transferUI.innerHTML = `
-
-        <div class="dynamic-title">
-            RECEIVING FILES
-        </div>
-
-
-        <div
-            id="receive-current-file"
-            class="receive-current-file"
-        >
-            Waiting for file...
-        </div>
-
-
-        <div
-            class="transfer-progress-wrap"
-        >
-
-            <div
-                class="transfer-progress-head"
-            >
-
-                <span
-                    id="receive-progress-label"
-                >
-                    Ready
-                </span>
-
-                <span
-                    id="receive-progress-percent"
-                >
-                    0%
-                </span>
-
-            </div>
-
-
-            <div
-                class="transfer-progress-track"
-            >
-
-                <div
-                    id="receive-progress"
-                    class="transfer-progress"
-                ></div>
-
-            </div>
-
-        </div>
-
-
-        <div
-            id="received-files"
-            class="received-files"
-        ></div>
-
-
-        <div
-            id="receive-message"
-            class="transfer-message"
-        >
-            Waiting for files...
-        </div>
-
-    `;
-
-
-    const parent =
-        document.querySelector(
-            ".connection"
-        );
-
-
-    if (!parent) {
-        return;
-    }
-
-
-    parent.appendChild(
-        transferUI
-    );
-}
-
-
-/* =========================================================
-   RECEIVE DATA
-========================================================= */
-
-function handleIncomingData(
-    data
-) {
-
-    console.log(
-        "Incoming data:",
-        data instanceof ArrayBuffer
-            ? `ArrayBuffer ${data.byteLength} bytes`
-            : data
-    );
-
-
-    /*
-     * Metadata object.
-     */
-
-    if (
-        data &&
-        typeof data === "object" &&
-        !(data instanceof ArrayBuffer) &&
-        !(data instanceof Blob) &&
-        !ArrayBuffer.isView(data)
-    ) {
-
-        if (
-            data.type ===
-            "file-start"
-        ) {
-
-            startReceiving(
-                data
-            );
-
-
-            return;
-        }
-
-
-        if (
-            data.type ===
-            "file-end"
-        ) {
-
-            finishReceiving(
-                data
-            );
-
-
-            return;
-        }
-    }
-
-
-    /*
-     * ArrayBuffer chunk.
-     */
-
-    if (
-        data instanceof ArrayBuffer
-    ) {
-
-        receiveChunk(
-            data
-        );
-
-
-        return;
-    }
-
-
-    /*
-     * Blob chunk.
-     */
-
-    if (
-        data instanceof Blob
-    ) {
-
-        data.arrayBuffer()
-            .then(
-                receiveChunk
-            )
-            .catch(
-                error => {
-
-                    console.error(
-                        "Blob error:",
-                        error
-                    );
-
-                }
-            );
-
-
-        return;
-    }
-
-
-    /*
-     * TypedArray.
-     */
-
-    if (
-        ArrayBuffer.isView(data)
-    ) {
-
-        const buffer =
-            data.buffer.slice(
-                data.byteOffset,
-                data.byteOffset +
-                    data.byteLength
-            );
-
-
-        receiveChunk(
-            buffer
-        );
-    }
-}
-
-
-/* =========================================================
-   START RECEIVING FILE
-========================================================= */
-
-function startReceiving(
-    metadata
-) {
-
-    console.log(
-        "FILE START:",
-        metadata
-    );
-
-
-    /*
-     * Reset old state.
-     */
-
-    receivingFile = {
-
-        name:
-            String(
-                metadata.name ||
-                "download"
-            ),
-
-        size:
-            Number(
-                metadata.size
-            ) || 0,
-
-        mime:
-            metadata.mime ||
-            "application/octet-stream",
-
-        fileIndex:
-            Number(
-                metadata.fileIndex
-            ) || 0,
-
-        totalFiles:
-            Number(
-                metadata.totalFiles
-            ) || 1
-    };
-
-
-    receivedChunks = [];
-
-    receivedBytes = 0;
-
-
-    updateReceiveProgress(
-        0
-    );
-
-
-    setStatus(
-        "connected",
-        `Receiving ${receivingFile.fileIndex + 1}/${receivingFile.totalFiles}`
-    );
-
-
-    setText(
-        "receive-current-file",
-        receivingFile.name
-    );
-
-
-    setText(
-        "receive-message",
-        `Receiving ${formatBytes(receivingFile.size)}`
-    );
-}
-
-
-/* =========================================================
-   RECEIVE CHUNK
-========================================================= */
-
-function receiveChunk(
-    buffer
-) {
-
-    if (!receivingFile) {
-
-        console.warn(
-            "Received data without file-start."
-        );
-
-
-        return;
-    }
-
-
-    receivedChunks.push(
-        buffer
-    );
-
-
-    receivedBytes +=
-        buffer.byteLength;
-
-
-    let percentage = 0;
-
-
-    if (
-        receivingFile.size > 0
-    ) {
-
-        percentage =
-            Math.min(
-                100,
-                Math.floor(
-                    (
-                        receivedBytes /
-                        receivingFile.size
-                    ) * 100
-                )
-            );
-
-    } else {
-
-        percentage = 100;
-
-    }
-
-
-    updateReceiveProgress(
-        percentage
-    );
-}
-
-
-/* =========================================================
-   FINISH RECEIVING FILE
-========================================================= */
-
-function finishReceiving(
-    metadata
-) {
-
-    if (!receivingFile) {
-
-        console.warn(
-            "file-end received without active file."
-        );
-
-
-        return;
-    }
-
-
-    console.log(
-        "FILE END:",
-        metadata
-    );
-
-
-    const fileInfo =
-        receivingFile;
-
-
-    /*
-     * Rebuild the original file.
-     */
-
-    const blob =
-        new Blob(
-            receivedChunks,
-            {
-                type:
-                    fileInfo.mime
-            }
-        );
-
-
-    /*
-     * Create local browser URL.
-     */
-
-    const url =
-        URL.createObjectURL(
-            blob
-        );
-
-
-    /*
-     * Add download button.
-     */
-
-    addReceivedFile(
-        fileInfo,
-        blob.size,
-        url
-    );
-
-
-    /*
-     * Reset current transfer.
-     */
-
-    receivingFile = null;
-
-    receivedChunks = [];
-
-    receivedBytes = 0;
-
-
-    updateReceiveProgress(
-        100
-    );
-
-
-    const completed =
-        fileInfo.fileIndex + 1;
-
-
-    const total =
-        fileInfo.totalFiles;
-
-
-    if (
-        completed >= total
-    ) {
-
-        setStatus(
-            "connected",
-            "All files received"
-        );
-
-
-        setText(
-            "receive-message",
-            `All ${total} file(s) received.`
-        );
-
-    } else {
-
-        setStatus(
-            "connected",
-            `File ${completed}/${total} received`
-        );
-
-
-        setText(
-            "receive-message",
-            `Waiting for file ${completed + 1}/${total}...`
-        );
-
-    }
-}
-
-
-/* =========================================================
-   RECEIVER PROGRESS
-========================================================= */
-
-function updateReceiveProgress(
-    percentage
-) {
-
-    const progress =
-        document.getElementById(
-            "receive-progress"
-        );
-
-
-    const percent =
-        document.getElementById(
-            "receive-progress-percent"
-        );
-
-
-    if (progress) {
-
-        progress.style.width =
-            `${percentage}%`;
-
-    }
-
-
-    if (percent) {
-
-        percent.textContent =
-            `${percentage}%`;
-
-    }
-}
-
-
-/* =========================================================
-   ADD RECEIVED FILE
-========================================================= */
-
-function addReceivedFile(
-    fileInfo,
-    size,
-    url
-) {
-
-    const container =
-        document.getElementById(
-            "received-files"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const row =
-        document.createElement(
-            "div"
-        );
-
-
-    row.className =
-        "received-file-row";
-
-
-    const info =
-        document.createElement(
-            "div"
-        );
-
-
-    info.className =
-        "received-file-info";
-
-
-    const index =
-        document.createElement(
-            "span"
-        );
-
-
-    index.className =
-        "received-file-index";
-
-
-    index.textContent =
-        String(
-            fileInfo.fileIndex + 1
-        );
-
-
-    const name =
-        document.createElement(
-            "span"
-        );
-
-
-    name.className =
-        "received-file-name";
-
-
-    name.textContent =
-        fileInfo.name;
-
-
-    name.title =
-        fileInfo.name;
-
-
-    const sizeElement =
-        document.createElement(
-            "span"
-        );
-
-
-    sizeElement.className =
-        "received-file-size";
-
-
-    sizeElement.textContent =
-        formatBytes(
-            size
-        );
-
-
-    const download =
-        document.createElement(
-            "a"
-        );
-
-
-    download.className =
-        "dynamic-button download-button";
-
-
-    download.href =
-        url;
-
-
-    download.download =
-        fileInfo.name;
-
-
-    download.textContent =
-        "Download";
-
-
-    info.appendChild(
-        index
-    );
-
-
-    info.appendChild(
-        name
-    );
-
-
-    info.appendChild(
-        sizeElement
-    );
-
-
-    row.appendChild(
-        info
-    );
-
-
-    row.appendChild(
-        download
-    );
-
-
-    container.appendChild(
-        row
-    );
-}
-
-
-/* =========================================================
-   REMOVE TRANSFER UI
-========================================================= */
-
-function removeTransferUI() {
-
-    if (transferUI) {
-
-        transferUI.remove();
-
-        transferUI = null;
-
-    }
-
-
-    selectedFiles = [];
-
-    receivingFile = null;
-
-    receivedChunks = [];
-
-    receivedBytes = 0;
-}
-
-
-/* =========================================================
    STOP QR SCANNER
-========================================================= */
+   ========================================================= */
 
 async function stopScanner() {
 
@@ -2463,6 +1179,7 @@ async function stopScanner() {
     ) {
 
         return;
+
     }
 
 
@@ -2476,6 +1193,7 @@ async function stopScanner() {
             "Scanner stop:",
             error
         );
+
     }
 
 
@@ -2489,6 +1207,7 @@ async function stopScanner() {
             "Scanner clear:",
             error
         );
+
     }
 
 
@@ -2500,7 +1219,7 @@ async function stopScanner() {
 
 /* =========================================================
    STATUS
-========================================================= */
+   ========================================================= */
 
 function setStatus(
     type,
@@ -2540,7 +1259,7 @@ function setStatus(
 
 /* =========================================================
    SET TEXT
-========================================================= */
+   ========================================================= */
 
 function setText(
     id,
@@ -2559,446 +1278,4 @@ function setText(
             value;
 
     }
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHTML(
-    value
-) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        String(
-            value
-        );
-
-
-    return div.innerHTML;
-}
-
-
-/* =========================================================
-   FORMAT FILE SIZE
-========================================================= */
-
-function formatBytes(
-    bytes
-) {
-
-    bytes =
-        Number(
-            bytes
-        ) || 0;
-
-
-    if (
-        bytes === 0
-    ) {
-
-        return "0 B";
-    }
-
-
-    const units = [
-        "B",
-        "KB",
-        "MB",
-        "GB",
-        "TB"
-    ];
-
-
-    const index =
-        Math.min(
-            Math.floor(
-                Math.log(bytes) /
-                Math.log(1024)
-            ),
-            units.length - 1
-        );
-
-
-    const value =
-        bytes /
-        Math.pow(
-            1024,
-            index
-        );
-
-
-    return (
-        value.toFixed(
-            index === 0
-                ? 0
-                : 2
-        )
-        +
-        " "
-        +
-        units[index]
-    );
-}
-
-
-/* =========================================================
-   SLEEP
-========================================================= */
-
-function sleep(
-    milliseconds
-) {
-
-    return new Promise(
-        resolve => {
-
-            setTimeout(
-                resolve,
-                milliseconds
-            );
-
-        }
-    );
-}
-
-
-/* =========================================================
-   DYNAMIC FILE TRANSFER CSS
-========================================================= */
-
-function injectTransferStyles() {
-
-    if (
-        document.getElementById(
-            "p2p-transfer-styles"
-        )
-    ) {
-
-        return;
-    }
-
-
-    const style =
-        document.createElement(
-            "style"
-        );
-
-
-    style.id =
-        "p2p-transfer-styles";
-
-
-    style.textContent = `
-
-        .dynamic-transfer-ui {
-
-            width: min(100%, 600px);
-
-            margin-top: 25px;
-
-            padding: 20px;
-
-            border: 1px solid var(--border);
-
-            background: var(--panel);
-
-            text-align: left;
-
-        }
-
-
-        .dynamic-title {
-
-            margin-bottom: 15px;
-
-            font-size: 10px;
-
-            letter-spacing: .15em;
-
-            color: var(--muted);
-
-        }
-
-
-        .file-picker {
-
-            display: block;
-
-            width: 100%;
-
-            padding: 16px;
-
-            border: 1px dashed var(--border);
-
-            background: var(--bg);
-
-            text-align: center;
-
-            cursor: pointer;
-
-            font-size: 12px;
-
-        }
-
-
-        .file-picker:hover {
-
-            border-color: var(--text);
-
-        }
-
-
-        .file-picker input {
-
-            display: none;
-
-        }
-
-
-        .selected-files,
-        .received-files {
-
-            margin-top: 12px;
-
-        }
-
-
-        .selected-file-row,
-        .received-file-row {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 10px;
-
-            width: 100%;
-
-            padding: 9px 0;
-
-            border-bottom: 1px solid var(--border);
-
-            font-family: monospace;
-
-            font-size: 11px;
-
-        }
-
-
-        .file-number,
-        .received-file-index {
-
-            flex: 0 0 20px;
-
-            color: var(--muted);
-
-        }
-
-
-        .file-name,
-        .received-file-name {
-
-            flex: 1;
-
-            min-width: 0;
-
-            overflow: hidden;
-
-            text-overflow: ellipsis;
-
-            white-space: nowrap;
-
-        }
-
-
-        .file-size,
-        .received-file-size {
-
-            color: var(--muted);
-
-            white-space: nowrap;
-
-        }
-
-
-        .received-file-info {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 10px;
-
-            min-width: 0;
-
-            flex: 1;
-
-        }
-
-
-        .transfer-progress-wrap {
-
-            margin-top: 18px;
-
-        }
-
-
-        .transfer-progress-head {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            gap: 10px;
-
-            margin-bottom: 7px;
-
-            color: var(--muted);
-
-            font-family: monospace;
-
-            font-size: 10px;
-
-        }
-
-
-        .transfer-progress-track {
-
-            width: 100%;
-
-            height: 5px;
-
-            overflow: hidden;
-
-            background: var(--border);
-
-        }
-
-
-        .transfer-progress {
-
-            width: 0;
-
-            height: 100%;
-
-            background: var(--text);
-
-            transition: width .08s linear;
-
-        }
-
-
-        .dynamic-button {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            margin-top: 15px;
-
-            padding: 10px 18px;
-
-            border: none;
-
-            background: var(--text);
-
-            color: white;
-
-            font-size: 12px;
-
-            text-decoration: none;
-
-            cursor: pointer;
-
-        }
-
-
-        .dynamic-button:disabled {
-
-            opacity: .4;
-
-            cursor: not-allowed;
-
-        }
-
-
-        .download-button {
-
-            flex: 0 0 auto;
-
-            margin-top: 0;
-
-            padding: 7px 12px;
-
-            font-size: 10px;
-
-        }
-
-
-        .transfer-message {
-
-            margin-top: 10px;
-
-            color: var(--muted);
-
-            font-size: 11px;
-
-        }
-
-
-        .receive-current-file {
-
-            margin-bottom: 12px;
-
-            font-family: monospace;
-
-            font-size: 12px;
-
-            word-break: break-all;
-
-        }
-
-
-        @media (max-width: 600px) {
-
-            .dynamic-transfer-ui {
-
-                padding: 15px;
-
-            }
-
-
-            .selected-file-row,
-            .received-file-row {
-
-                font-size: 10px;
-
-            }
-
-
-            .file-size,
-            .received-file-size {
-
-                display: none;
-
-            }
-
-        }
-
-    `;
-
-
-    document.head.appendChild(
-        style
-    );
 }
