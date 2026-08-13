@@ -299,3 +299,262 @@ h1 {
     }
 
 }
+
+/* =========================================================
+   FILE TRANSFER
+   ========================================================= */
+
+.file-transfer {
+    width: min(100%, 520px);
+    margin-top: 30px;
+}
+
+
+/* DROP ZONE */
+
+.drop-zone {
+    width: 100%;
+    min-height: 230px;
+
+    padding: 35px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px dashed var(--border);
+    background: var(--panel);
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.drop-zone:hover {
+    border-color: var(--text);
+}
+
+.drop-zone.dragover {
+    border-color: var(--text);
+    background: #eeeeea;
+    transform: scale(1.01);
+}
+
+
+.drop-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border: 1px solid var(--border);
+    border-radius: 50%;
+
+    font-size: 25px;
+    font-weight: 300;
+}
+
+
+.drop-zone h2 {
+    margin-bottom: 8px;
+
+    font-size: 20px;
+    font-weight: 500;
+}
+
+
+.drop-zone p {
+    margin-bottom: 20px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+
+/* SELECT BUTTON */
+
+.select-file-btn {
+    border: none;
+
+    padding: 10px 18px;
+
+    background: #111;
+    color: white;
+
+    font-size: 12px;
+
+    cursor: pointer;
+
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.select-file-btn:hover {
+    opacity: 0.8;
+}
+
+.select-file-btn:active {
+    transform: scale(0.97);
+}
+
+
+/* FILE INFO */
+
+.file-info {
+    width: 100%;
+
+    margin-top: 15px;
+    padding: 18px;
+
+    border: 1px solid var(--border);
+    background: var(--panel);
+
+    text-align: left;
+}
+
+
+.file-name {
+    font-size: 14px;
+    font-weight: 600;
+
+    word-break: break-all;
+}
+
+
+.file-size {
+    margin-top: 5px;
+
+    color: var(--muted);
+
+    font-family: monospace;
+    font-size: 11px;
+}
+
+
+/* PROGRESS */
+
+.progress-wrapper {
+    width: 100%;
+    height: 5px;
+
+    margin-top: 18px;
+
+    overflow: hidden;
+
+    background: #e5e4df;
+}
+
+
+.transfer-progress {
+    width: 0%;
+    height: 100%;
+
+    background: #111;
+
+    transition: width 0.1s linear;
+}
+
+
+.transfer-status {
+    margin-top: 10px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+/* RECEIVED FILE */
+
+.received-file {
+    width: 100%;
+
+    margin-top: 15px;
+    padding: 18px;
+
+    border: 1px solid #b8d8c4;
+    background: #f5fbf7;
+
+    text-align: left;
+}
+
+
+.received-title {
+    color: #20a35a;
+
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+
+.received-name {
+    margin-top: 8px;
+
+    font-family: monospace;
+    font-size: 13px;
+
+    word-break: break-all;
+}
+
+
+.received-actions {
+    display: flex;
+    gap: 8px;
+
+    margin-top: 15px;
+}
+
+
+.download-file,
+.preview-file {
+    display: inline-block;
+
+    padding: 9px 14px;
+
+    border: 1px solid var(--border);
+
+    background: white;
+    color: var(--text);
+
+    text-decoration: none;
+
+    font-size: 11px;
+}
+
+
+.download-file:hover,
+.preview-file:hover {
+    background: #f0efeb;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+    .file-transfer {
+        width: 100%;
+    }
+
+    .drop-zone {
+        min-height: 200px;
+        padding: 25px;
+    }
+
+    .received-actions {
+        flex-direction: column;
+    }
+
+}

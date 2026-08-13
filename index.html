@@ -82,7 +82,112 @@
 
             </div>
 
+            
+
         </section>
+        <!-- FILE TRANSFER -->
+<section id="file-transfer" class="file-transfer hidden">
+
+    <div id="drop-zone" class="drop-zone">
+
+        <div class="drop-icon">
+            +
+        </div>
+
+        <h2>Drop a file</h2>
+
+        <p>
+            Drag and drop a file here
+            <br>
+            or click to select
+        </p>
+
+        <input
+            type="file"
+            id="file-input"
+            hidden
+        >
+
+        <button
+            type="button"
+            id="select-file-btn"
+            class="select-file-btn"
+        >
+            Select file
+        </button>
+
+    </div>
+
+    <div id="file-info" class="file-info hidden">
+
+        <div class="file-name" id="file-name">
+            —
+        </div>
+
+        <div class="file-size" id="file-size">
+            —
+        </div>
+
+        <div class="progress-wrapper">
+
+            <div
+                id="transfer-progress"
+                class="transfer-progress"
+            ></div>
+
+        </div>
+
+        <div
+            id="transfer-status"
+            class="transfer-status"
+        >
+            Ready
+        </div>
+
+    </div>
+
+    <div
+        id="received-file"
+        class="received-file hidden"
+    >
+
+        <div class="received-title">
+            File received
+        </div>
+
+        <div
+            id="received-file-name"
+            class="received-name"
+        >
+            —
+        </div>
+
+        <div class="received-actions">
+
+            <a
+                id="download-file"
+                class="download-file"
+                href="#"
+                download
+            >
+                Download
+            </a>
+
+            <a
+                id="preview-file"
+                class="preview-file"
+                href="#"
+                target="_blank"
+                rel="noopener"
+            >
+                Preview
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
 
     </main>
 

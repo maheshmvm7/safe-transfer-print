@@ -1,5 +1,5 @@
 /* =========================================================
-   P2P WEBRTC CONNECTION
+   P2P WEBRTC FILE TRANSFER
    QR CODE + PEERJS
    ========================================================= */
 
@@ -10,6 +10,19 @@ let qrScanner = null;
 let scannerRunning = false;
 
 let isConnecting = false;
+
+
+/* =========================================================
+   FILE TRANSFER SETTINGS
+   ========================================================= */
+
+const CHUNK_SIZE = 16 * 1024;
+
+let selectedFile = null;
+
+let incomingFile = null;
+let incomingChunks = [];
+let incomingBytes = 0;
 
 
 /* =========================================================
@@ -25,6 +38,7 @@ document.addEventListener(
 async function initialize() {
 
     setupButtons();
+    setupFileTransfer();
 
     setStatus(
         "info",
@@ -102,9 +116,7 @@ function setupButtons() {
 function loadPeerJS() {
 
     if (window.Peer) {
-
         return Promise.resolve();
-
     }
 
 
@@ -167,9 +179,7 @@ function loadPeerJS() {
 function createPeer() {
 
     if (peer) {
-
         return;
-
     }
 
 
@@ -256,8 +266,7 @@ function createPeer() {
             /*
              * This device owns the QR code.
              *
-             * Therefore this device is
-             * the receiver.
+             * Therefore this device is the receiver.
              */
 
             acceptIncomingConnection(
@@ -370,9 +379,7 @@ function generateQR(
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -391,9 +398,7 @@ function generateQR(
             "QR library unavailable"
         );
 
-
         return;
-
     }
 
 
@@ -559,9 +564,7 @@ async function showScanner() {
 
 
     if (scannerRunning) {
-
         return;
-
     }
 
 
@@ -580,7 +583,6 @@ async function showScanner() {
 
 
         return;
-
     }
 
 
@@ -614,7 +616,6 @@ async function showScanner() {
 
 
         return;
-
     }
 
 
@@ -666,11 +667,7 @@ async function showScanner() {
             },
 
             () => {
-
-                /*
-                 * Ignore unsuccessful scans.
-                 */
-
+                /* Ignore unsuccessful scans */
             }
 
         );
@@ -725,9 +722,7 @@ async function onQRCodeDetected(
 
 
     if (!remotePeerId) {
-
         return;
-
     }
 
 
@@ -738,15 +733,9 @@ async function onQRCodeDetected(
             connection.open
         )
     ) {
-
         return;
-
     }
 
-
-    /*
-     * Prevent multiple scanner callbacks.
-     */
 
     isConnecting = true;
 
@@ -795,7 +784,6 @@ function connectToPeer(
 
 
         return;
-
     }
 
 
@@ -814,7 +802,6 @@ function connectToPeer(
 
 
         return;
-
     }
 
 
@@ -843,7 +830,7 @@ function connectToPeer(
                     "binary",
 
                 label:
-                    "p2p-connection"
+                    "p2p-file-transfer"
 
             }
         );
@@ -884,8 +871,11 @@ function connectToPeer(
 
             setText(
                 "description",
-                "Connection established."
+                "Connection established. Select a file to send."
             );
+
+
+            showFileTransfer();
 
         }
     );
@@ -895,8 +885,7 @@ function connectToPeer(
         "data",
         data => {
 
-            console.log(
-                "Data received:",
+            handleIncomingData(
                 data
             );
 
@@ -962,7 +951,6 @@ function acceptIncomingConnection(
         incomingConnection.close();
 
         return;
-
     }
 
 
@@ -1003,21 +991,20 @@ function acceptIncomingConnection(
 
             setText(
                 "description",
-                "Connection established. Opening preview..."
+                "Connection established. Waiting for a file..."
             );
 
 
             /*
              * IMPORTANT:
              *
-             * This device is the receiver.
+             * Do NOT redirect to preview.html here.
              *
-             * Open preview.html automatically.
+             * The receiver must keep this page open
+             * so the WebRTC connection remains active.
              */
 
-            openPreviewPage(
-                connection.peer
-            );
+            showFileTransfer();
 
         }
     );
@@ -1027,15 +1014,7 @@ function acceptIncomingConnection(
         "data",
         data => {
 
-            /*
-             * Keep the connection alive.
-             *
-             * preview.html can create its own
-             * connection if required.
-             */
-
-            console.log(
-                "Data received:",
+            handleIncomingData(
                 data
             );
 
@@ -1078,62 +1057,6 @@ function acceptIncomingConnection(
 
 
 /* =========================================================
-   OPEN PREVIEW PAGE
-   ========================================================= */
-
-function openPreviewPage(
-    remotePeerId
-) {
-
-    const peerId =
-        encodeURIComponent(
-            String(
-                remotePeerId ||
-                ""
-            )
-        );
-
-
-    console.log(
-        "Opening preview.html"
-    );
-
-
-    console.log(
-        "Remote peer:",
-        remotePeerId
-    );
-
-
-    /*
-     * Pass the sender's PeerJS ID
-     * to preview.html.
-     */
-
-    const previewURL =
-        peerId
-            ? `preview.html?peer=${peerId}`
-            : "preview.html";
-
-
-    /*
-     * Small delay to allow the
-     * connected state to update.
-     */
-
-    setTimeout(
-        () => {
-
-            window.location.href =
-                previewURL;
-
-        },
-        300
-    );
-}
-
-
-/* =========================================================
    CONNECTION RESULT
    ========================================================= */
 
@@ -1163,6 +1086,835 @@ function showConnectionResult(
 
     result?.classList.remove(
         "hidden"
+    );
+}
+
+
+/* =========================================================
+   FILE TRANSFER UI
+   ========================================================= */
+
+function setupFileTransfer() {
+
+    const fileInput =
+        document.getElementById(
+            "file-input"
+        );
+
+    const selectButton =
+        document.getElementById(
+            "select-file-btn"
+        );
+
+    const dropZone =
+        document.getElementById(
+            "drop-zone"
+        );
+
+
+    if (!fileInput || !selectButton || !dropZone) {
+        return;
+    }
+
+
+    selectButton.addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            fileInput.click();
+
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target === selectButton
+            ) {
+                return;
+            }
+
+            fileInput.click();
+
+        }
+    );
+
+
+    fileInput.addEventListener(
+        "change",
+        event => {
+
+            const file =
+                event.target.files?.[0];
+
+            if (file) {
+                prepareFile(file);
+            }
+
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "dragover",
+        event => {
+
+            event.preventDefault();
+
+            dropZone.classList.add(
+                "dragover"
+            );
+
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "dragleave",
+        event => {
+
+            event.preventDefault();
+
+            dropZone.classList.remove(
+                "dragover"
+            );
+
+        }
+    );
+
+
+    dropZone.addEventListener(
+        "drop",
+        event => {
+
+            event.preventDefault();
+
+            dropZone.classList.remove(
+                "dragover"
+            );
+
+
+            const file =
+                event.dataTransfer.files?.[0];
+
+            if (file) {
+                prepareFile(file);
+            }
+
+        }
+    );
+}
+
+
+/* =========================================================
+   SHOW FILE UI
+   ========================================================= */
+
+function showFileTransfer() {
+
+    const transfer =
+        document.getElementById(
+            "file-transfer"
+        );
+
+
+    transfer?.classList.remove(
+        "hidden"
+    );
+}
+
+
+/* =========================================================
+   PREPARE FILE
+   ========================================================= */
+
+function prepareFile(
+    file
+) {
+
+    if (
+        !connection ||
+        !connection.open
+    ) {
+
+        setStatus(
+            "error",
+            "Not connected"
+        );
+
+        return;
+    }
+
+
+    selectedFile =
+        file;
+
+
+    const fileInfo =
+        document.getElementById(
+            "file-info"
+        );
+
+
+    const fileName =
+        document.getElementById(
+            "file-name"
+        );
+
+
+    const fileSize =
+        document.getElementById(
+            "file-size"
+        );
+
+
+    const progress =
+        document.getElementById(
+            "transfer-progress"
+        );
+
+
+    const status =
+        document.getElementById(
+            "transfer-status"
+        );
+
+
+    const received =
+        document.getElementById(
+            "received-file"
+        );
+
+
+    fileInfo?.classList.remove(
+        "hidden"
+    );
+
+
+    received?.classList.add(
+        "hidden"
+    );
+
+
+    if (fileName) {
+        fileName.textContent =
+            file.name;
+    }
+
+
+    if (fileSize) {
+        fileSize.textContent =
+            formatBytes(file.size);
+    }
+
+
+    if (progress) {
+        progress.style.width =
+            "0%";
+    }
+
+
+    if (status) {
+        status.textContent =
+            "Starting transfer...";
+    }
+
+
+    sendFile(
+        file
+    );
+}
+
+
+/* =========================================================
+   SEND FILE
+   ========================================================= */
+
+async function sendFile(
+    file
+) {
+
+    if (
+        !connection ||
+        !connection.open
+    ) {
+
+        setStatus(
+            "error",
+            "Connection unavailable"
+        );
+
+        return;
+    }
+
+
+    console.log(
+        "Sending file:",
+        file.name,
+        file.size
+    );
+
+
+    try {
+
+        /*
+         * Send metadata first.
+         */
+
+        connection.send({
+
+            type:
+                "file-start",
+
+            name:
+                file.name,
+
+            size:
+                file.size,
+
+            mime:
+                file.type ||
+                "application/octet-stream"
+
+        });
+
+
+        let offset = 0;
+
+
+        while (
+            offset <
+            file.size
+        ) {
+
+            const slice =
+                file.slice(
+                    offset,
+                    offset +
+                    CHUNK_SIZE
+                );
+
+
+            const buffer =
+                await slice.arrayBuffer();
+
+
+            await waitForDataChannel();
+
+
+            connection.send(
+                buffer
+            );
+
+
+            offset +=
+                buffer.byteLength;
+
+
+            const percentage =
+                Math.min(
+                    100,
+                    (
+                        offset /
+                        file.size
+                    ) * 100
+                );
+
+
+            updateProgress(
+                percentage,
+                `Sending ${Math.round(percentage)}%`
+            );
+
+        }
+
+
+        /*
+         * Tell receiver that all chunks
+         * have been sent.
+         */
+
+        connection.send({
+
+            type:
+                "file-end"
+
+        });
+
+
+        updateProgress(
+            100,
+            "Transfer complete"
+        );
+
+
+        console.log(
+            "File sent successfully."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "File send error:",
+            error
+        );
+
+
+        updateProgress(
+            0,
+            "Transfer failed"
+        );
+
+    }
+}
+
+
+/* =========================================================
+   DATA CHANNEL BACKPRESSURE
+   ========================================================= */
+
+async function waitForDataChannel() {
+
+    if (
+        !connection ||
+        !connection.dataChannel
+    ) {
+        return;
+    }
+
+
+    const channel =
+        connection.dataChannel;
+
+
+    /*
+     * Prevent the browser's WebRTC
+     * send buffer from growing too much.
+     */
+
+    while (
+        channel.bufferedAmount >
+        1024 * 1024
+    ) {
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    20
+                )
+        );
+
+    }
+}
+
+
+/* =========================================================
+   RECEIVE DATA
+   ========================================================= */
+
+function handleIncomingData(
+    data
+) {
+
+    /*
+     * Metadata / control messages.
+     */
+
+    if (
+        data &&
+        typeof data === "object" &&
+        !ArrayBuffer.isView(data) &&
+        !(data instanceof ArrayBuffer) &&
+        !(data instanceof Blob)
+    ) {
+
+        if (
+            data.type ===
+            "file-start"
+        ) {
+
+            startIncomingFile(
+                data
+            );
+
+            return;
+        }
+
+
+        if (
+            data.type ===
+            "file-end"
+        ) {
+
+            finishIncomingFile();
+
+            return;
+        }
+
+    }
+
+
+    /*
+     * Binary chunk.
+     */
+
+    if (
+        data instanceof ArrayBuffer
+    ) {
+
+        receiveFileChunk(
+            data
+        );
+
+        return;
+    }
+
+
+    /*
+     * Some browsers / PeerJS configurations
+     * can deliver binary data as Blob.
+     */
+
+    if (
+        data instanceof Blob
+    ) {
+
+        data.arrayBuffer()
+            .then(
+                buffer =>
+                    receiveFileChunk(
+                        buffer
+                    )
+            );
+
+    }
+
+}
+
+
+/* =========================================================
+   START RECEIVING FILE
+   ========================================================= */
+
+function startIncomingFile(
+    metadata
+) {
+
+    incomingFile = {
+
+        name:
+            metadata.name,
+
+        size:
+            metadata.size,
+
+        mime:
+            metadata.mime ||
+            "application/octet-stream"
+
+    };
+
+
+    incomingChunks = [];
+
+    incomingBytes = 0;
+
+
+    const fileInfo =
+        document.getElementById(
+            "file-info"
+        );
+
+
+    const fileName =
+        document.getElementById(
+            "file-name"
+        );
+
+
+    const fileSize =
+        document.getElementById(
+            "file-size"
+        );
+
+
+    const received =
+        document.getElementById(
+            "received-file"
+        );
+
+
+    fileInfo?.classList.remove(
+        "hidden"
+    );
+
+
+    received?.classList.add(
+        "hidden"
+    );
+
+
+    if (fileName) {
+
+        fileName.textContent =
+            incomingFile.name;
+
+    }
+
+
+    if (fileSize) {
+
+        fileSize.textContent =
+            formatBytes(
+                incomingFile.size
+            );
+
+    }
+
+
+    updateProgress(
+        0,
+        "Receiving 0%"
+    );
+
+
+    console.log(
+        "Receiving file:",
+        incomingFile
+    );
+}
+
+
+/* =========================================================
+   RECEIVE CHUNK
+   ========================================================= */
+
+function receiveFileChunk(
+    buffer
+) {
+
+    if (!incomingFile) {
+        return;
+    }
+
+
+    incomingChunks.push(
+        buffer
+    );
+
+
+    incomingBytes +=
+        buffer.byteLength;
+
+
+    const percentage =
+        Math.min(
+            100,
+            (
+                incomingBytes /
+                incomingFile.size
+            ) * 100
+        );
+
+
+    updateProgress(
+        percentage,
+        `Receiving ${Math.round(percentage)}%`
+    );
+}
+
+
+/* =========================================================
+   FINISH RECEIVING
+   ========================================================= */
+
+function finishIncomingFile() {
+
+    if (!incomingFile) {
+        return;
+    }
+
+
+    console.log(
+        "File transfer finished."
+    );
+
+
+    const blob =
+        new Blob(
+            incomingChunks,
+            {
+                type:
+                    incomingFile.mime
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const received =
+        document.getElementById(
+            "received-file"
+        );
+
+
+    const receivedName =
+        document.getElementById(
+            "received-file-name"
+        );
+
+
+    const download =
+        document.getElementById(
+            "download-file"
+        );
+
+
+    const preview =
+        document.getElementById(
+            "preview-file"
+        );
+
+
+    received?.classList.remove(
+        "hidden"
+    );
+
+
+    if (receivedName) {
+
+        receivedName.textContent =
+            incomingFile.name;
+
+    }
+
+
+    if (download) {
+
+        download.href =
+            url;
+
+        download.download =
+            incomingFile.name;
+
+    }
+
+
+    if (preview) {
+
+        preview.href =
+            url;
+
+    }
+
+
+    updateProgress(
+        100,
+        "File received"
+    );
+
+
+    /*
+     * Free the individual chunks.
+     */
+
+    incomingChunks = [];
+
+    incomingFile = null;
+
+    incomingBytes = 0;
+}
+
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+function updateProgress(
+    percentage,
+    text
+) {
+
+    const progress =
+        document.getElementById(
+            "transfer-progress"
+        );
+
+
+    const status =
+        document.getElementById(
+            "transfer-status"
+        );
+
+
+    if (progress) {
+
+        progress.style.width =
+            `${percentage}%`;
+
+    }
+
+
+    if (status) {
+
+        status.textContent =
+            text;
+
+    }
+}
+
+
+/* =========================================================
+   FORMAT BYTES
+   ========================================================= */
+
+function formatBytes(
+    bytes
+) {
+
+    if (
+        !Number.isFinite(bytes) ||
+        bytes <= 0
+    ) {
+        return "0 Bytes";
+    }
+
+
+    const units = [
+        "Bytes",
+        "KB",
+        "MB",
+        "GB",
+        "TB"
+    ];
+
+
+    const index =
+        Math.floor(
+            Math.log(bytes) /
+            Math.log(1024)
+        );
+
+
+    return (
+        `${(
+            bytes /
+            Math.pow(
+                1024,
+                index
+            )
+        ).toFixed(index === 0 ? 0 : 2)} ${units[index]}`
     );
 }
 

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Preview | P2P</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+
+        :root {
+            --bg: #f4f3ef;
+            --text: #111;
+            --muted: #777;
+            --border: #d8d7d2;
+            --panel: #ffffff;
+            --green: #20a35a;
+        }
+
+
+        body {
+            min-height: 100vh;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: var(--bg);
+            color: var(--text);
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        .app {
+            width: min(100%, 900px);
+            min-height: 100vh;
+
+            padding: 30px;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        /* HEADER */
+
+        .header {
+            width: 100%;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+
+            letter-spacing: -0.04em;
+        }
+
+
+        .status {
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+
+        #status-dot {
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #aaa;
+        }
+
+
+        #status-dot.connected {
+            background: var(--green);
+        }
+
+
+        /* MAIN */
+
+        .preview {
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+        }
+
+
+        .eyebrow {
+            margin-bottom: 14px;
+
+            font-size: 10px;
+
+            letter-spacing: 0.15em;
+
+            color: var(--muted);
+        }
+
+
+        h1 {
+            font-size: clamp(
+                42px,
+                7vw,
+                76px
+            );
+
+            line-height: 0.95;
+
+            letter-spacing: -0.07em;
+
+            font-weight: 500;
+        }
+
+
+        .description {
+            max-width: 520px;
+
+            margin-top: 22px;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+            color: var(--muted);
+        }
+
+
+        /* PREVIEW PANEL */
+
+        .preview-panel {
+            width: min(
+                100%,
+                520px
+            );
+
+            margin-top: 35px;
+
+            padding: 24px;
+
+            border: 1px solid var(--border);
+
+            background: var(--panel);
+
+            text-align: left;
+        }
+
+
+        .panel-label {
+            margin-bottom: 18px;
+
+            font-size: 10px;
+
+            letter-spacing: 0.15em;
+
+            color: var(--muted);
+        }
+
+
+        .preview-content {
+            min-height: 150px;
+
+            display: flex;
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+
+            border: 1px dashed var(--border);
+
+            padding: 30px;
+        }
+
+
+        .preview-icon {
+            width: 46px;
+            height: 46px;
+
+            margin-bottom: 15px;
+
+            border: 1px solid var(--border);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 18px;
+        }
+
+
+        .preview-title {
+            font-size: 13px;
+
+            font-weight: 500;
+        }
+
+
+        .preview-message {
+            margin-top: 8px;
+
+            font-size: 11px;
+
+            line-height: 1.5;
+
+            color: var(--muted);
+        }
+
+
+        /* FILE INFORMATION */
+
+        .file-info {
+            display: none;
+
+            margin-top: 20px;
+
+            padding-top: 20px;
+
+            border-top: 1px solid var(--border);
+        }
+
+
+        .file-row {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 20px;
+        }
+
+
+        .file-name {
+            font-size: 13px;
+
+            word-break: break-all;
+        }
+
+
+        .file-size {
+            flex-shrink: 0;
+
+            font-family: monospace;
+
+            font-size: 10px;
+
+            color: var(--muted);
+        }
+
+
+        /* PROGRESS */
+
+        .progress-container {
+            display: none;
+
+            margin-top: 20px;
+        }
+
+
+        .progress-header {
+            display: flex;
+
+            justify-content: space-between;
+
+            margin-bottom: 8px;
+
+            font-family: monospace;
+
+            font-size: 10px;
+
+            color: var(--muted);
+        }
+
+
+        .progress-track {
+            width: 100%;
+            height: 5px;
+
+            overflow: hidden;
+
+            background: var(--border);
+        }
+
+
+        .progress {
+            width: 0%;
+            height: 100%;
+
+            background: var(--text);
+
+            transition:
+                width 0.1s linear;
+        }
+
+
+        /* PEER INFORMATION */
+
+        .peer-info {
+            margin-top: 20px;
+
+            font-family: monospace;
+
+            font-size: 10px;
+
+            color: var(--muted);
+
+            text-align: center;
+
+            word-break: break-all;
+        }
+
+
+        /* MOBILE */
+
+        @media (max-width: 600px) {
+
+            .app {
+                padding: 20px;
+            }
+
+
+            .preview-panel {
+                padding: 18px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <main class="app">
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div class="logo">
+                P2P
+            </div>
+
+
+            <div class="status">
+
+                <span id="status-dot"></span>
+
+                <span id="status-text">
+                    Connecting
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <!-- PREVIEW -->
+
+        <section class="preview">
+
+            <div class="eyebrow">
+                FILE PREVIEW
+            </div>
+
+
+            <h1 id="title">
+                Preview
+            </h1>
+
+
+            <p
+                class="description"
+                id="description"
+            >
+                Waiting for the file transfer to begin.
+            </p>
+
+
+            <!-- PREVIEW PANEL -->
+
+            <div class="preview-panel">
+
+                <div class="panel-label">
+                    INCOMING FILE
+                </div>
+
+
+                <div
+                    class="preview-content"
+                    id="preview-content"
+                >
+
+                    <div class="preview-icon">
+                        ↗
+                    </div>
+
+
+                    <div class="preview-title">
+                        Waiting for file
+                    </div>
+
+
+                    <div
+                        class="preview-message"
+                        id="preview-message"
+                    >
+                        The received file will appear here.
+                    </div>
+
+                </div>
+
+
+                <!-- FILE INFORMATION -->
+
+                <div
+                    class="file-info"
+                    id="file-info"
+                >
+
+                    <div class="file-row">
+
+                        <span
+                            class="file-name"
+                            id="file-name"
+                        >
+                            —
+                        </span>
+
+
+                        <span
+                            class="file-size"
+                            id="file-size"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROGRESS -->
+
+                <div
+                    class="progress-container"
+                    id="progress-container"
+                >
+
+                    <div class="progress-header">
+
+                        <span id="progress-label">
+                            Receiving
+                        </span>
+
+
+                        <span id="progress-percent">
+                            0%
+                        </span>
+
+                    </div>
+
+
+                    <div class="progress-track">
+
+                        <div
+                            class="progress"
+                            id="progress"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- PEER -->
+
+            <div
+                class="peer-info"
+                id="peer-info"
+            >
+                Connecting to peer...
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        /*
+         * Get the peer ID passed by index.html.
+         *
+         * Example:
+         *
+         * preview.html?peer=abc123
+         */
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+
+        const remotePeer =
+            params.get("peer");
+
+
+        const statusText =
+            document.getElementById(
+                "status-text"
+            );
+
+
+        const statusDot =
+            document.getElementById(
+                "status-dot"
+            );
+
+
+        const title =
+            document.getElementById(
+                "title"
+            );
+
+
+        const description =
+            document.getElementById(
+                "description"
+            );
+
+
+        const previewMessage =
+            document.getElementById(
+                "preview-message"
+            );
+
+
+        const peerInfo =
+            document.getElementById(
+                "peer-info"
+            );
+
+
+        /*
+         * Show the peer ID passed from
+         * the previous page.
+         */
+
+        if (remotePeer) {
+
+            peerInfo.textContent =
+                `Peer: ${remotePeer}`;
+
+        } else {
+
+            peerInfo.textContent =
+                "No peer ID provided.";
+
+        }
+
+
+        /*
+         * Initial state.
+         */
+
+        function setConnectedState() {
+
+            statusText.textContent =
+                "Connected";
+
+            statusDot.classList.add(
+                "connected"
+            );
+
+            title.textContent =
+                "Ready";
+
+            description.textContent =
+                "The connection is ready for the incoming file.";
+
+            previewMessage.textContent =
+                "Waiting for the sender to begin.";
+
+        }
+
+
+        /*
+         * Initial page state.
+         */
+
+        if (remotePeer) {
+
+            setConnectedState();
+
+        } else {
+
+            statusText.textContent =
+                "Waiting";
+
+            title.textContent =
+                "Preview";
+
+            description.textContent =
+                "No active peer connection was provided.";
+
+        }
+
+    </script>
+
+</body>
+
+</html>
