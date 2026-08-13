@@ -8,12 +8,11 @@ let connection = null;
 
 let qrScanner = null;
 let scannerRunning = false;
-
 let isConnecting = false;
 
 
 /* =========================================================
-   FILE TRANSFER SETTINGS
+   FILE TRANSFER
    ========================================================= */
 
 const CHUNK_SIZE = 16 * 1024;
@@ -23,6 +22,8 @@ let selectedFile = null;
 let incomingFile = null;
 let incomingChunks = [];
 let incomingBytes = 0;
+
+let receivedObjectURL = null;
 
 
 /* =========================================================
@@ -40,10 +41,7 @@ async function initialize() {
     setupButtons();
     setupFileTransfer();
 
-    setStatus(
-        "info",
-        "Loading..."
-    );
+    setStatus("info", "Loading...");
 
     try {
 
@@ -78,34 +76,22 @@ async function initialize() {
 function setupButtons() {
 
     const qrButton =
-        document.getElementById(
-            "show-qr-btn"
-        );
+        document.getElementById("show-qr-btn");
 
     const scanButton =
-        document.getElementById(
-            "scan-qr-btn"
-        );
+        document.getElementById("scan-qr-btn");
 
 
-    if (qrButton) {
-
-        qrButton.addEventListener(
-            "click",
-            showQR
-        );
-
-    }
+    qrButton?.addEventListener(
+        "click",
+        showQR
+    );
 
 
-    if (scanButton) {
-
-        scanButton.addEventListener(
-            "click",
-            showScanner
-        );
-
-    }
+    scanButton?.addEventListener(
+        "click",
+        showScanner
+    );
 }
 
 
@@ -124,10 +110,7 @@ function loadPeerJS() {
         (resolve, reject) => {
 
             const script =
-                document.createElement(
-                    "script"
-                );
-
+                document.createElement("script");
 
             script.src =
                 "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
@@ -136,17 +119,13 @@ function loadPeerJS() {
             script.onload = () => {
 
                 if (window.Peer) {
-
                     resolve();
-
                 } else {
-
                     reject(
                         new Error(
-                            "PeerJS is unavailable."
+                            "PeerJS unavailable"
                         )
                     );
-
                 }
 
             };
@@ -156,17 +135,14 @@ function loadPeerJS() {
 
                 reject(
                     new Error(
-                        "Unable to load PeerJS."
+                        "Unable to load PeerJS"
                     )
                 );
 
             };
 
 
-            document.head.appendChild(
-                script
-            );
-
+            document.head.appendChild(script);
         }
     );
 }
@@ -188,23 +164,20 @@ function createPeer() {
         config: {
 
             iceServers: [
-
                 {
                     urls:
                         "stun:stun.l.google.com:19302"
                 }
-
             ]
 
         },
 
         debug: 1
-
     });
 
 
     /* -----------------------------------------------------
-       PEER READY
+       PEER OPEN
        ----------------------------------------------------- */
 
     peer.on(
@@ -223,9 +196,7 @@ function createPeer() {
             );
 
 
-            generateQR(
-                id
-            );
+            generateQR(id);
 
 
             setStatus(
@@ -244,7 +215,6 @@ function createPeer() {
                 "description",
                 "Show this QR code to the device that will connect."
             );
-
         }
     );
 
@@ -263,22 +233,15 @@ function createPeer() {
             );
 
 
-            /*
-             * This device owns the QR code.
-             *
-             * Therefore this device is the receiver.
-             */
-
             acceptIncomingConnection(
                 incoming
             );
-
         }
     );
 
 
     /* -----------------------------------------------------
-       PEER ERRORS
+       PEER ERROR
        ----------------------------------------------------- */
 
     peer.on(
@@ -291,48 +254,11 @@ function createPeer() {
             );
 
 
-            switch (error.type) {
-
-                case "peer-unavailable":
-
-                    setStatus(
-                        "error",
-                        "Peer unavailable"
-                    );
-
-                    break;
-
-
-                case "network":
-
-                    setStatus(
-                        "error",
-                        "Signaling network error"
-                    );
-
-                    break;
-
-
-                case "webrtc":
-
-                    setStatus(
-                        "error",
-                        "WebRTC connection error"
-                    );
-
-                    break;
-
-
-                default:
-
-                    setStatus(
-                        "error",
-                        error.message ||
-                        "Peer error"
-                    );
-
-            }
-
+            setStatus(
+                "error",
+                error.message ||
+                "Peer error"
+            );
         }
     );
 
@@ -343,9 +269,8 @@ function createPeer() {
 
             setStatus(
                 "error",
-                "Disconnected from signaling"
+                "Disconnected"
             );
-
         }
     );
 
@@ -358,7 +283,6 @@ function createPeer() {
                 "error",
                 "Peer closed"
             );
-
         }
     );
 }
@@ -368,14 +292,10 @@ function createPeer() {
    QR GENERATION
    ========================================================= */
 
-function generateQR(
-    peerId
-) {
+function generateQR(peerId) {
 
     const container =
-        document.getElementById(
-            "qrcode"
-        );
+        document.getElementById("qrcode");
 
 
     if (!container) {
@@ -387,11 +307,6 @@ function generateQR(
 
 
     if (!window.QRCode) {
-
-        console.error(
-            "QRCode library is missing."
-        );
-
 
         setStatus(
             "error",
@@ -405,25 +320,13 @@ function generateQR(
     new QRCode(
         container,
         {
-
-            text:
-                peerId,
-
-            width:
-                220,
-
-            height:
-                220,
-
-            colorDark:
-                "#111111",
-
-            colorLight:
-                "#ffffff",
-
+            text: peerId,
+            width: 220,
+            height: 220,
+            colorDark: "#111111",
+            colorLight: "#ffffff",
             correctLevel:
                 QRCode.CorrectLevel.H
-
         }
     );
 }
@@ -435,45 +338,24 @@ function generateQR(
 
 function showQR() {
 
-    const qrButton =
-        document.getElementById(
-            "show-qr-btn"
-        );
-
-    const scanButton =
-        document.getElementById(
-            "scan-qr-btn"
-        );
-
-    const qrSection =
-        document.getElementById(
-            "qr-section"
-        );
-
-    const scannerSection =
-        document.getElementById(
-            "scanner-section"
-        );
+    document
+        .getElementById("show-qr-btn")
+        ?.classList.add("active");
 
 
-    qrButton?.classList.add(
-        "active"
-    );
+    document
+        .getElementById("scan-qr-btn")
+        ?.classList.remove("active");
 
 
-    scanButton?.classList.remove(
-        "active"
-    );
+    document
+        .getElementById("qr-section")
+        ?.classList.remove("hidden");
 
 
-    qrSection?.classList.remove(
-        "hidden"
-    );
-
-
-    scannerSection?.classList.add(
-        "hidden"
-    );
+    document
+        .getElementById("scanner-section")
+        ?.classList.add("hidden");
 
 
     stopScanner();
@@ -491,15 +373,8 @@ function showQR() {
     );
 
 
-    if (
-        peer &&
-        peer.id
-    ) {
-
-        generateQR(
-            peer.id
-        );
-
+    if (peer?.id) {
+        generateQR(peer.id);
     }
 }
 
@@ -510,45 +385,24 @@ function showQR() {
 
 async function showScanner() {
 
-    const qrButton =
-        document.getElementById(
-            "show-qr-btn"
-        );
-
-    const scanButton =
-        document.getElementById(
-            "scan-qr-btn"
-        );
-
-    const qrSection =
-        document.getElementById(
-            "qr-section"
-        );
-
-    const scannerSection =
-        document.getElementById(
-            "scanner-section"
-        );
+    document
+        .getElementById("show-qr-btn")
+        ?.classList.remove("active");
 
 
-    qrButton?.classList.remove(
-        "active"
-    );
+    document
+        .getElementById("scan-qr-btn")
+        ?.classList.add("active");
 
 
-    scanButton?.classList.add(
-        "active"
-    );
+    document
+        .getElementById("qr-section")
+        ?.classList.add("hidden");
 
 
-    qrSection?.classList.add(
-        "hidden"
-    );
-
-
-    scannerSection?.classList.remove(
-        "hidden"
-    );
+    document
+        .getElementById("scanner-section")
+        ?.classList.remove("hidden");
 
 
     setText(
@@ -575,20 +429,9 @@ async function showScanner() {
             "QR scanner unavailable"
         );
 
-
-        setText(
-            "scanner-message",
-            "html5-qrcode.min.js was not loaded."
-        );
-
-
         return;
     }
 
-
-    /*
-     * Camera requires HTTPS or localhost.
-     */
 
     const isHTTPS =
         location.protocol === "https:";
@@ -608,12 +451,10 @@ async function showScanner() {
             "HTTPS required for camera"
         );
 
-
         setText(
             "scanner-message",
             "Camera access requires HTTPS or localhost."
         );
-
 
         return;
     }
@@ -622,18 +463,10 @@ async function showScanner() {
     try {
 
         qrScanner =
-            new Html5Qrcode(
-                "reader"
-            );
+            new Html5Qrcode("reader");
 
 
         scannerRunning = true;
-
-
-        setText(
-            "scanner-message",
-            "Point the camera at the receiver QR code."
-        );
 
 
         await qrScanner.start(
@@ -644,18 +477,12 @@ async function showScanner() {
             },
 
             {
-                fps:
-                    10,
+                fps: 10,
 
-                qrbox:
-                {
-                    width:
-                        220,
-
-                    height:
-                        220
+                qrbox: {
+                    width: 220,
+                    height: 220
                 }
-
             },
 
             decodedText => {
@@ -663,13 +490,9 @@ async function showScanner() {
                 onQRCodeDetected(
                     decodedText
                 );
-
             },
 
-            () => {
-                /* Ignore unsuccessful scans */
-            }
-
+            () => {}
         );
 
 
@@ -677,7 +500,6 @@ async function showScanner() {
             "info",
             "Scanning..."
         );
-
 
     } catch (error) {
 
@@ -688,7 +510,6 @@ async function showScanner() {
 
 
         scannerRunning = false;
-
         qrScanner = null;
 
 
@@ -696,13 +517,6 @@ async function showScanner() {
             "error",
             "Camera failed"
         );
-
-
-        setText(
-            "scanner-message",
-            "Could not start the camera."
-        );
-
     }
 }
 
@@ -711,14 +525,10 @@ async function showScanner() {
    QR DETECTED
    ========================================================= */
 
-async function onQRCodeDetected(
-    text
-) {
+async function onQRCodeDetected(text) {
 
     const remotePeerId =
-        String(
-            text
-        ).trim();
+        String(text).trim();
 
 
     if (!remotePeerId) {
@@ -765,9 +575,7 @@ async function onQRCodeDetected(
    CONNECT TO PEER
    ========================================================= */
 
-function connectToPeer(
-    remotePeerId
-) {
+function connectToPeer(remotePeerId) {
 
     if (
         !peer ||
@@ -776,30 +584,25 @@ function connectToPeer(
 
         isConnecting = false;
 
-
         setStatus(
             "error",
             "Peer is not ready"
         );
-
 
         return;
     }
 
 
     if (
-        remotePeerId ===
-        peer.id
+        remotePeerId === peer.id
     ) {
 
         isConnecting = false;
-
 
         setStatus(
             "error",
             "You scanned yourself"
         );
-
 
         return;
     }
@@ -812,40 +615,79 @@ function connectToPeer(
 
 
     /*
-     * This device scanned the QR.
-     *
-     * Therefore this device is
-     * the sender.
+     * THIS DEVICE = SENDER
      */
 
-    const newConnection =
+    connection =
         peer.connect(
             remotePeerId,
             {
-
-                reliable:
-                    true,
-
-                serialization:
-                    "binary",
-
-                label:
-                    "p2p-file-transfer"
-
+                reliable: true,
+                serialization: "binary",
+                label: "p2p-file-transfer"
             }
         );
 
 
+    attachConnectionEvents(
+        connection,
+        remotePeerId,
+        true
+    );
+}
+
+
+/* =========================================================
+   ACCEPT CONNECTION
+   ========================================================= */
+
+function acceptIncomingConnection(
+    incomingConnection
+) {
+
+    if (
+        connection &&
+        connection.open
+    ) {
+
+        incomingConnection.close();
+
+        return;
+    }
+
+
+    /*
+     * THIS DEVICE = RECEIVER
+     */
+
     connection =
-        newConnection;
+        incomingConnection;
 
 
-    connection.on(
+    attachConnectionEvents(
+        connection,
+        incomingConnection.peer,
+        false
+    );
+}
+
+
+/* =========================================================
+   CONNECTION EVENTS
+   ========================================================= */
+
+function attachConnectionEvents(
+    conn,
+    remotePeerId,
+    isSender
+) {
+
+    conn.on(
         "open",
         () => {
 
             console.log(
-                "WebRTC data connection OPEN"
+                "WebRTC connection OPEN"
             );
 
 
@@ -869,36 +711,51 @@ function connectToPeer(
             );
 
 
-            setText(
-                "description",
-                "Connection established. Select a file to send."
-            );
+            if (isSender) {
+
+                setText(
+                    "description",
+                    "Connection established. Select a file to send."
+                );
+
+            } else {
+
+                setText(
+                    "description",
+                    "Connection established. Waiting for a file..."
+                );
+
+            }
 
 
             showFileTransfer();
-
         }
     );
 
 
-    connection.on(
+    conn.on(
         "data",
         data => {
+
+            console.log(
+                "Received data:",
+                data
+            );
+
 
             handleIncomingData(
                 data
             );
-
         }
     );
 
 
-    connection.on(
+    conn.on(
         "close",
         () => {
 
             console.log(
-                "Connection closed."
+                "Connection closed"
             );
 
 
@@ -906,141 +763,16 @@ function connectToPeer(
                 "info",
                 "Connection closed"
             );
-
         }
     );
 
 
-    connection.on(
+    conn.on(
         "error",
         error => {
 
             console.error(
-                "Data connection error:",
-                error
-            );
-
-
-            isConnecting = false;
-
-
-            setStatus(
-                "error",
-                error.message ||
-                "Connection failed"
-            );
-
-        }
-    );
-}
-
-
-/* =========================================================
-   ACCEPT INCOMING CONNECTION
-   ========================================================= */
-
-function acceptIncomingConnection(
-    incomingConnection
-) {
-
-    if (
-        connection &&
-        connection.open
-    ) {
-
-        incomingConnection.close();
-
-        return;
-    }
-
-
-    connection =
-        incomingConnection;
-
-
-    console.log(
-        "Incoming connection object created."
-    );
-
-
-    connection.on(
-        "open",
-        () => {
-
-            console.log(
-                "Incoming WebRTC connection OPEN"
-            );
-
-
-            showConnectionResult(
-                connection.peer
-            );
-
-
-            setStatus(
-                "connected",
-                "Connected"
-            );
-
-
-            setText(
-                "title",
-                "Connected"
-            );
-
-
-            setText(
-                "description",
-                "Connection established. Waiting for a file..."
-            );
-
-
-            /*
-             * IMPORTANT:
-             *
-             * Do NOT redirect to preview.html here.
-             *
-             * The receiver must keep this page open
-             * so the WebRTC connection remains active.
-             */
-
-            showFileTransfer();
-
-        }
-    );
-
-
-    connection.on(
-        "data",
-        data => {
-
-            handleIncomingData(
-                data
-            );
-
-        }
-    );
-
-
-    connection.on(
-        "close",
-        () => {
-
-            setStatus(
-                "info",
-                "Sender disconnected"
-            );
-
-        }
-    );
-
-
-    connection.on(
-        "error",
-        error => {
-
-            console.error(
-                "Incoming connection error:",
+                "Connection error:",
                 error
             );
 
@@ -1050,69 +782,36 @@ function acceptIncomingConnection(
                 error.message ||
                 "Connection error"
             );
-
         }
     );
 }
 
 
 /* =========================================================
-   CONNECTION RESULT
-   ========================================================= */
-
-function showConnectionResult(
-    remotePeerId
-) {
-
-    const result =
-        document.getElementById(
-            "connection-result"
-        );
-
-
-    const remote =
-        document.getElementById(
-            "connected-peer"
-        );
-
-
-    if (remote) {
-
-        remote.textContent =
-            remotePeerId;
-
-    }
-
-
-    result?.classList.remove(
-        "hidden"
-    );
-}
-
-
-/* =========================================================
-   FILE TRANSFER UI
+   FILE UI
    ========================================================= */
 
 function setupFileTransfer() {
 
     const fileInput =
-        document.getElementById(
-            "file-input"
-        );
+        document.getElementById("file-input");
 
     const selectButton =
-        document.getElementById(
-            "select-file-btn"
-        );
+        document.getElementById("select-file-btn");
 
     const dropZone =
-        document.getElementById(
-            "drop-zone"
+        document.getElementById("drop-zone");
+
+
+    if (
+        !fileInput ||
+        !selectButton ||
+        !dropZone
+    ) {
+        console.warn(
+            "File transfer HTML not found"
         );
 
-
-    if (!fileInput || !selectButton || !dropZone) {
         return;
     }
 
@@ -1124,7 +823,6 @@ function setupFileTransfer() {
             event.stopPropagation();
 
             fileInput.click();
-
         }
     );
 
@@ -1140,7 +838,6 @@ function setupFileTransfer() {
             }
 
             fileInput.click();
-
         }
     );
 
@@ -1152,10 +849,10 @@ function setupFileTransfer() {
             const file =
                 event.target.files?.[0];
 
+
             if (file) {
                 prepareFile(file);
             }
-
         }
     );
 
@@ -1169,7 +866,6 @@ function setupFileTransfer() {
             dropZone.classList.add(
                 "dragover"
             );
-
         }
     );
 
@@ -1183,7 +879,6 @@ function setupFileTransfer() {
             dropZone.classList.remove(
                 "dragover"
             );
-
         }
     );
 
@@ -1202,30 +897,24 @@ function setupFileTransfer() {
             const file =
                 event.dataTransfer.files?.[0];
 
+
             if (file) {
                 prepareFile(file);
             }
-
         }
     );
 }
 
 
 /* =========================================================
-   SHOW FILE UI
+   SHOW FILE TRANSFER
    ========================================================= */
 
 function showFileTransfer() {
 
-    const transfer =
-        document.getElementById(
-            "file-transfer"
-        );
-
-
-    transfer?.classList.remove(
-        "hidden"
-    );
+    document
+        .getElementById("file-transfer")
+        ?.classList.remove("hidden");
 }
 
 
@@ -1233,9 +922,7 @@ function showFileTransfer() {
    PREPARE FILE
    ========================================================= */
 
-function prepareFile(
-    file
-) {
+function prepareFile(file) {
 
     if (
         !connection ||
@@ -1251,83 +938,38 @@ function prepareFile(
     }
 
 
-    selectedFile =
-        file;
+    selectedFile = file;
 
 
-    const fileInfo =
-        document.getElementById(
-            "file-info"
-        );
+    document
+        .getElementById("file-info")
+        ?.classList.remove("hidden");
 
 
-    const fileName =
-        document.getElementById(
-            "file-name"
-        );
+    document
+        .getElementById("received-file")
+        ?.classList.add("hidden");
 
 
-    const fileSize =
-        document.getElementById(
-            "file-size"
-        );
-
-
-    const progress =
-        document.getElementById(
-            "transfer-progress"
-        );
-
-
-    const status =
-        document.getElementById(
-            "transfer-status"
-        );
-
-
-    const received =
-        document.getElementById(
-            "received-file"
-        );
-
-
-    fileInfo?.classList.remove(
-        "hidden"
+    setText(
+        "file-name",
+        file.name
     );
 
 
-    received?.classList.add(
-        "hidden"
+    setText(
+        "file-size",
+        formatBytes(file.size)
     );
 
 
-    if (fileName) {
-        fileName.textContent =
-            file.name;
-    }
-
-
-    if (fileSize) {
-        fileSize.textContent =
-            formatBytes(file.size);
-    }
-
-
-    if (progress) {
-        progress.style.width =
-            "0%";
-    }
-
-
-    if (status) {
-        status.textContent =
-            "Starting transfer...";
-    }
-
-
-    sendFile(
-        file
+    updateProgress(
+        0,
+        "Preparing file..."
     );
+
+
+    sendFile(file);
 }
 
 
@@ -1335,52 +977,29 @@ function prepareFile(
    SEND FILE
    ========================================================= */
 
-async function sendFile(
-    file
-) {
-
-    if (
-        !connection ||
-        !connection.open
-    ) {
-
-        setStatus(
-            "error",
-            "Connection unavailable"
-        );
-
-        return;
-    }
-
-
-    console.log(
-        "Sending file:",
-        file.name,
-        file.size
-    );
-
+async function sendFile(file) {
 
     try {
 
+        console.log(
+            "Starting file transfer:",
+            file.name,
+            file.size,
+            file.type
+        );
+
+
         /*
-         * Send metadata first.
+         * Send metadata.
          */
 
         connection.send({
-
-            type:
-                "file-start",
-
-            name:
-                file.name,
-
-            size:
-                file.size,
-
+            type: "file-start",
+            name: file.name,
+            size: file.size,
             mime:
                 file.type ||
                 "application/octet-stream"
-
         });
 
 
@@ -1392,11 +1011,17 @@ async function sendFile(
             file.size
         ) {
 
+            const end =
+                Math.min(
+                    offset + CHUNK_SIZE,
+                    file.size
+                );
+
+
             const slice =
                 file.slice(
                     offset,
-                    offset +
-                    CHUNK_SIZE
+                    end
                 );
 
 
@@ -1404,82 +1029,93 @@ async function sendFile(
                 await slice.arrayBuffer();
 
 
-            await waitForDataChannel();
+            /*
+             * IMPORTANT:
+             *
+             * Convert to Uint8Array.
+             * This avoids inconsistent binary
+             * handling between PeerJS/browser versions.
+             */
+
+            const chunk =
+                new Uint8Array(buffer);
+
+
+            await waitForBuffer();
 
 
             connection.send(
-                buffer
+                chunk
             );
 
 
             offset +=
-                buffer.byteLength;
+                chunk.byteLength;
 
 
-            const percentage =
-                Math.min(
-                    100,
-                    (
-                        offset /
-                        file.size
-                    ) * 100
-                );
+            const percent =
+                (
+                    offset /
+                    file.size
+                ) * 100;
 
 
             updateProgress(
-                percentage,
-                `Sending ${Math.round(percentage)}%`
+                percent,
+                `Sending ${Math.floor(percent)}%`
             );
-
         }
 
 
         /*
-         * Tell receiver that all chunks
-         * have been sent.
+         * Wait until the data channel
+         * has drained before sending
+         * the final message.
          */
 
+        await waitForBuffer(true);
+
+
         connection.send({
-
-            type:
-                "file-end"
-
+            type: "file-end"
         });
 
 
         updateProgress(
             100,
-            "Transfer complete"
+            "File sent successfully"
         );
 
 
         console.log(
-            "File sent successfully."
+            "FILE SENT:",
+            file.name
         );
 
 
     } catch (error) {
 
         console.error(
-            "File send error:",
+            "File transfer failed:",
             error
         );
 
 
         updateProgress(
             0,
-            "Transfer failed"
+            "File transfer failed"
         );
-
     }
 }
 
 
 /* =========================================================
-   DATA CHANNEL BACKPRESSURE
+   DATA CHANNEL BUFFER
    ========================================================= */
 
-async function waitForDataChannel() {
+async function waitForBuffer(
+    finalWait = false
+) {
 
     if (
         !connection ||
@@ -1493,24 +1129,24 @@ async function waitForDataChannel() {
         connection.dataChannel;
 
 
-    /*
-     * Prevent the browser's WebRTC
-     * send buffer from growing too much.
-     */
+    const limit =
+        finalWait
+            ? 0
+            : 512 * 1024;
+
 
     while (
         channel.bufferedAmount >
-        1024 * 1024
+        limit
     ) {
 
         await new Promise(
             resolve =>
                 setTimeout(
                     resolve,
-                    20
+                    10
                 )
         );
-
     }
 }
 
@@ -1519,12 +1155,10 @@ async function waitForDataChannel() {
    RECEIVE DATA
    ========================================================= */
 
-function handleIncomingData(
-    data
-) {
+async function handleIncomingData(data) {
 
     /*
-     * Metadata / control messages.
+     * CONTROL MESSAGE
      */
 
     if (
@@ -1557,19 +1191,18 @@ function handleIncomingData(
 
             return;
         }
-
     }
 
 
     /*
-     * Binary chunk.
+     * ARRAY BUFFER
      */
 
     if (
         data instanceof ArrayBuffer
     ) {
 
-        receiveFileChunk(
+        receiveChunk(
             data
         );
 
@@ -1578,34 +1211,67 @@ function handleIncomingData(
 
 
     /*
-     * Some browsers / PeerJS configurations
-     * can deliver binary data as Blob.
+     * UINT8ARRAY / TYPED ARRAY
+     */
+
+    if (
+        ArrayBuffer.isView(data)
+    ) {
+
+        const buffer =
+            data.buffer.slice(
+                data.byteOffset,
+                data.byteOffset +
+                data.byteLength
+            );
+
+
+        receiveChunk(
+            buffer
+        );
+
+        return;
+    }
+
+
+    /*
+     * BLOB
      */
 
     if (
         data instanceof Blob
     ) {
 
-        data.arrayBuffer()
-            .then(
-                buffer =>
-                    receiveFileChunk(
-                        buffer
-                    )
-            );
+        const buffer =
+            await data.arrayBuffer();
 
+
+        receiveChunk(
+            buffer
+        );
+
+        return;
     }
 
+
+    console.warn(
+        "Unknown incoming data:",
+        data
+    );
 }
 
 
 /* =========================================================
-   START RECEIVING FILE
+   START INCOMING FILE
    ========================================================= */
 
-function startIncomingFile(
-    metadata
-) {
+function startIncomingFile(metadata) {
+
+    console.log(
+        "FILE START:",
+        metadata
+    );
+
 
     incomingFile = {
 
@@ -1613,12 +1279,11 @@ function startIncomingFile(
             metadata.name,
 
         size:
-            metadata.size,
+            Number(metadata.size),
 
         mime:
             metadata.mime ||
             "application/octet-stream"
-
     };
 
 
@@ -1627,67 +1292,33 @@ function startIncomingFile(
     incomingBytes = 0;
 
 
-    const fileInfo =
-        document.getElementById(
-            "file-info"
-        );
+    document
+        .getElementById("file-info")
+        ?.classList.remove("hidden");
 
 
-    const fileName =
-        document.getElementById(
-            "file-name"
-        );
+    document
+        .getElementById("received-file")
+        ?.classList.add("hidden");
 
 
-    const fileSize =
-        document.getElementById(
-            "file-size"
-        );
-
-
-    const received =
-        document.getElementById(
-            "received-file"
-        );
-
-
-    fileInfo?.classList.remove(
-        "hidden"
+    setText(
+        "file-name",
+        incomingFile.name
     );
 
 
-    received?.classList.add(
-        "hidden"
+    setText(
+        "file-size",
+        formatBytes(
+            incomingFile.size
+        )
     );
-
-
-    if (fileName) {
-
-        fileName.textContent =
-            incomingFile.name;
-
-    }
-
-
-    if (fileSize) {
-
-        fileSize.textContent =
-            formatBytes(
-                incomingFile.size
-            );
-
-    }
 
 
     updateProgress(
         0,
         "Receiving 0%"
-    );
-
-
-    console.log(
-        "Receiving file:",
-        incomingFile
     );
 }
 
@@ -1696,56 +1327,109 @@ function startIncomingFile(
    RECEIVE CHUNK
    ========================================================= */
 
-function receiveFileChunk(
-    buffer
-) {
+function receiveChunk(buffer) {
 
     if (!incomingFile) {
+
+        console.warn(
+            "Received chunk without file metadata"
+        );
+
         return;
     }
 
 
+    /*
+     * Store an actual Uint8Array.
+     */
+
+    const chunk =
+        new Uint8Array(buffer);
+
+
     incomingChunks.push(
-        buffer
+        chunk
     );
 
 
     incomingBytes +=
-        buffer.byteLength;
+        chunk.byteLength;
 
 
-    const percentage =
-        Math.min(
-            100,
-            (
-                incomingBytes /
-                incomingFile.size
-            ) * 100
-        );
+    const percent =
+        (
+            incomingBytes /
+            incomingFile.size
+        ) * 100;
 
 
     updateProgress(
-        percentage,
-        `Receiving ${Math.round(percentage)}%`
+        percent,
+        `Receiving ${Math.floor(percent)}%`
+    );
+
+
+    console.log(
+        `Received ${incomingBytes}/${incomingFile.size}`
     );
 }
 
 
 /* =========================================================
-   FINISH RECEIVING
+   FINISH FILE
    ========================================================= */
 
 function finishIncomingFile() {
 
     if (!incomingFile) {
+
+        console.warn(
+            "FILE END received without file"
+        );
+
         return;
     }
 
 
     console.log(
-        "File transfer finished."
+        "FILE END"
     );
 
+
+    /*
+     * VERIFY FILE SIZE
+     */
+
+    if (
+        incomingBytes !==
+        incomingFile.size
+    ) {
+
+        console.error(
+            "File size mismatch:",
+            {
+                expected:
+                    incomingFile.size,
+
+                received:
+                    incomingBytes
+            }
+        );
+
+
+        updateProgress(
+            0,
+            `Transfer incomplete: ${formatBytes(incomingBytes)} / ${formatBytes(incomingFile.size)}`
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * Create the final Blob.
+     */
 
     const blob =
         new Blob(
@@ -1757,23 +1441,34 @@ function finishIncomingFile() {
         );
 
 
-    const url =
+    console.log(
+        "Blob created:",
+        blob.size,
+        blob.type
+    );
+
+
+    /*
+     * Remove previous object URL.
+     */
+
+    if (receivedObjectURL) {
+
+        URL.revokeObjectURL(
+            receivedObjectURL
+        );
+    }
+
+
+    receivedObjectURL =
         URL.createObjectURL(
             blob
         );
 
 
-    const received =
-        document.getElementById(
-            "received-file"
-        );
-
-
-    const receivedName =
-        document.getElementById(
-            "received-file-name"
-        );
-
+    /*
+     * DOWNLOAD
+     */
 
     const download =
         document.getElementById(
@@ -1781,59 +1476,84 @@ function finishIncomingFile() {
         );
 
 
+    if (download) {
+
+        download.href =
+            receivedObjectURL;
+
+        download.download =
+            incomingFile.name;
+
+        download.style.display =
+            "inline-block";
+    }
+
+
+    /*
+     * PREVIEW
+     */
+
     const preview =
         document.getElementById(
             "preview-file"
         );
 
 
-    received?.classList.remove(
-        "hidden"
-    );
-
-
-    if (receivedName) {
-
-        receivedName.textContent =
-            incomingFile.name;
-
-    }
-
-
-    if (download) {
-
-        download.href =
-            url;
-
-        download.download =
-            incomingFile.name;
-
-    }
-
-
     if (preview) {
 
         preview.href =
-            url;
+            receivedObjectURL;
 
+        preview.target =
+            "_blank";
+
+        preview.rel =
+            "noopener";
+
+        preview.style.display =
+            "inline-block";
     }
+
+
+    /*
+     * DISPLAY RESULT
+     */
+
+    setText(
+        "received-file-name",
+        incomingFile.name
+    );
+
+
+    document
+        .getElementById("received-file")
+        ?.classList.remove("hidden");
 
 
     updateProgress(
         100,
-        "File received"
+        "File received successfully"
     );
 
 
     /*
-     * Free the individual chunks.
+     * IMPORTANT:
+     *
+     * Clear chunks only AFTER
+     * the Blob has been created.
      */
 
     incomingChunks = [];
 
+    incomingBytes = 0;
+
     incomingFile = null;
 
-    incomingBytes = 0;
+
+    console.log(
+        "FILE READY:",
+        receivedObjectURL
+    );
 }
 
 
@@ -1861,16 +1581,19 @@ function updateProgress(
     if (progress) {
 
         progress.style.width =
-            `${percentage}%`;
-
+            `${Math.max(
+                0,
+                Math.min(
+                    100,
+                    percentage
+                )
+            )}%`;
     }
 
 
     if (status) {
-
         status.textContent =
             text;
-
     }
 }
 
@@ -1879,9 +1602,7 @@ function updateProgress(
    FORMAT BYTES
    ========================================================= */
 
-function formatBytes(
-    bytes
-) {
+function formatBytes(bytes) {
 
     if (
         !Number.isFinite(bytes) ||
@@ -1908,19 +1629,56 @@ function formatBytes(
 
 
     return (
-        `${(
+        (
             bytes /
             Math.pow(
                 1024,
                 index
             )
-        ).toFixed(index === 0 ? 0 : 2)} ${units[index]}`
+        ).toFixed(
+            index === 0 ? 0 : 2
+        ) +
+        " " +
+        units[index]
     );
 }
 
 
 /* =========================================================
-   STOP QR SCANNER
+   CONNECTION RESULT
+   ========================================================= */
+
+function showConnectionResult(
+    remotePeerId
+) {
+
+    const result =
+        document.getElementById(
+            "connection-result"
+        );
+
+
+    const remote =
+        document.getElementById(
+            "connected-peer"
+        );
+
+
+    if (remote) {
+
+        remote.textContent =
+            remotePeerId;
+    }
+
+
+    result?.classList.remove(
+        "hidden"
+    );
+}
+
+
+/* =========================================================
+   STOP SCANNER
    ========================================================= */
 
 async function stopScanner() {
@@ -1929,9 +1687,7 @@ async function stopScanner() {
         !qrScanner ||
         !scannerRunning
     ) {
-
         return;
-
     }
 
 
@@ -1945,7 +1701,6 @@ async function stopScanner() {
             "Scanner stop:",
             error
         );
-
     }
 
 
@@ -1959,7 +1714,6 @@ async function stopScanner() {
             "Scanner clear:",
             error
         );
-
     }
 
 
@@ -1994,7 +1748,6 @@ function setStatus(
 
         status.textContent =
             text;
-
     }
 
 
@@ -2004,7 +1757,6 @@ function setStatus(
             "connected",
             type === "connected"
         );
-
     }
 }
 
@@ -2019,15 +1771,12 @@ function setText(
 ) {
 
     const element =
-        document.getElementById(
-            id
-        );
+        document.getElementById(id);
 
 
     if (element) {
 
         element.textContent =
             value;
-
     }
 }
